@@ -7,7 +7,7 @@ pfizer = data;
 
 % load Tx PTH dataset
 data_path_tx = getpref('TxPTH','TxPthDataPath');
-load([data_path_tx '/TxPTH061323.mat'])
+load([data_path_tx '/TxPTH091823.mat'])
 pth_tx = data;
 
 clear data data_path*
@@ -56,7 +56,7 @@ data.days_visit1to2 = split(data.days_visit1to2,'d');
 % Separate those who received treatement within the first 4 months from
 % those who did not
 data.prev_cat = zeros(height(data),1);
-data.prev_cat(data.follow_treat1_dur_cont<120 & (data.follow_treat_cat2___nut_prev==1|data.follow_treat_cat2___rx_prev==1)) = 1;
+data.prev_cat(data.follow_treat1_dur_cont<120 & (data.follow_treat_cat1___nut_prev==1|data.follow_treat_cat1___rx_prev==1)) = 1;
 
 data.prev_cat2 = categorical(data.prev_cat,[0 1],{'no_prev','prev'});
 
@@ -68,7 +68,6 @@ data.prev_catFull2 = categorical(data.prev_catFull,[0 1 2],{'no_prev','nutri','r
 data.ha_cont = zeros(height(data),1);
 data.ha_cont(data.p_current_ha_pattern=='cons_flare'|data.p_current_ha_pattern=='cons_same') = 1;
 
-data.ha_cont = categorical(data.ha_cont,[0 1],{'intermittent','constant'});
 
 %% determine season of concussion, first visit, and follow up visit
 % winter december - february
@@ -107,11 +106,13 @@ data.visit2_seasonCat = categorical(data.visit2_season,[4 1 2 3],{'fall','winter
 data.pheno = ICHD3.pheno;
 
 data.mig_pheno = zeros(height(data),1);
-data.mig_pheno(data.pheno=='migraine'|data.pheno=='chronic_migraine') = 1;
+data.mig_pheno(data.pheno=='migraine'|data.pheno=='chronic_migraine'|data.pheno=='prob_migraine') = 1;
+data.cm = zeros(height(data),1);
+data.cm(data.pheno=='chronic_migraine') = 1;
 
 % were lost to follow up
 data.fu = zeros(height(data),1);
-data.fu(data.follow_return=='Yes' & data.days_post_visit2<365 & data.days_visit1to2<180) = 1;
+data.fu(data.follow_return=='Yes' & data.follow_ben~='unk') = 1;
 
 data.freq_bad = NaN*ones(height(data),1);
 data.freq_bad (data.p_fre_bad=='never') = 1;
@@ -129,10 +130,48 @@ data.pedmidas_grade(data.p_pedmidas_score>10 & data.p_pedmidas_score<=30) = 1;
 data.pedmidas_grade(data.p_pedmidas_score>30 & data.p_pedmidas_score<=50) = 2;
 data.pedmidas_grade(data.p_pedmidas_score>50) = 3;
 
+% back up functional status
+data.pedmidas_gradeBackup = NaN*ones(height(data),1);
+data.pedmidas_gradeBackup(data.pres_school___att_good==1) = 0; % attending school, normal grades
+data.pedmidas_gradeBackup(data.pres_school___att_down==1) = 2; % attending school, grades down
+data.pedmidas_gradeBackup(data.pres_school___att_unk==1) = 0; % attending school, academic performance unknown
+data.pedmidas_gradeBackup(data.pres_school___mis_2_less==1) = 1; % missing school 5 days or less per month
+data.pedmidas_gradeBackup(data.pres_school___mis_2_great==1) = 2; % missing school 6 days or more per month
+data.pedmidas_gradeBackup(data.pres_school___ada==1) = 3; % adapted schedule
+data.pedmidas_gradeBackup(data.pres_school___hom_cyb==1) = 3; % Homebound/cyber for medical/prolonged absence
+
+for x = 1:height(data)
+    if isnan(data.pedmidas_grade(x)) && ~isnan(data.pedmidas_gradeBackup(x))
+        data.pedmidas_grade(x) = data.pedmidas_gradeBackup(x);
+    end
+end
+
+
+% overall severity grade
+data.severity_grade = NaN*ones(height(data),1);
+data.severity_grade(data.p_sev_overall=='mild') = 1;
+data.severity_grade(data.p_sev_overall=='mod') = 2;
+data.severity_grade(data.p_sev_overall=='sev') = 3;
+
 data.race = reordercats(data.race,{'white','black','asian','am_indian','pacific_island','no_answer','unk'});
 data.ethnicity = reordercats(data.ethnicity,{'no_hisp','hisp','no_answer','unk'});
 data.follow_ben = reordercats(data.follow_ben,{'wor','non_ben','som_ben','sig_ben'});
 data.follow_ben(data.follow_ben~='wor' & data.follow_ben~='non_ben' & data.follow_ben~='som_ben' & data.follow_ben~='sig_ben') = 'unk';
+data.prior_ha_in_lifetime = reordercats(data.prior_ha_in_lifetime,{'no','sick','epi','cont_epi','cont','mis'});
+data.race_white = zeros(height(data),1);
+data.race_white(data.race=='white') = 1;
+data.race_black = zeros(height(data),1);
+data.race_black(data.race=='black') = 1;
+data.race_asian = zeros(height(data),1);
+data.race_asian(data.race=='asian') = 1;
+data.eth_nonHisp = zeros(height(data),1);
+data.eth_nonHisp(data.ethnicity=='no_hisp') = 1;
+data.eth_Hisp = zeros(height(data),1);
+data.eth_Hisp(data.ethnicity=='hisp') = 1;
+
+data.prior_ha = NaN*ones(height(data),1);
+data.prior_ha(data.prior_ha_in_lifetime=='no'|data.prior_ha_in_lifetime=='sick') = 0;
+data.prior_ha(data.prior_ha_in_lifetime=='epi'|data.prior_ha_in_lifetime=='cont_epi'|data.prior_ha_in_lifetime=='cont') = 1;
 
 % include any duration of med overuse
 data.med_overuse = zeros(height(data),1);
@@ -197,9 +236,9 @@ mdl_fu_age = fitglm(data,'fu ~ age','Distribution','binomial');
 mdl_fu_sex = fitglm(data,'fu ~ gender','Distribution','binomial');
 mdl_fu_race = fitglm(data,'fu ~ race','Distribution','binomial');
 mdl_fu_ethnicity = fitglm(data,'fu ~ ethnicity','Distribution','binomial');
-mdl_fu_severity = fitglm(data,'fu ~ p_sev_usual','Distribution','binomial');
+mdl_fu_severity = fitglm(data,'fu ~ severity_grade','Distribution','binomial');
 mdl_fu_frequency = fitglm(data,'fu ~ freq_bad','Distribution','binomial');
-mdl_fu_disability = fitglm(data,'fu ~ p_pedmidas_score','Distribution','binomial');
+mdl_fu_disability = fitglm(data,'fu ~ pedmidas_grade','Distribution','binomial');
 mdl_fu_conc = fitglm(data,'fu ~ concuss_number','Distribution','binomial');
 mdl_fu_prev = fitglm(data,'fu ~ prev_cat','Distribution','binomial');
 mdl_fu_cont = fitglm(data,'fu ~ ha_cont','Distribution','binomial');
@@ -207,14 +246,9 @@ mdl_fu_dayspost = fitglm(data,'fu ~ days_post_visit1','Distribution','binomial')
 mdl_fu_concspec = fitglm(data,'fu ~ p_prov_seen___conc','Distribution','binomial');
 mdl_fu_depress = fitglm(data,'fu ~ depression___general_prior','Distribution','binomial');
 mdl_fu_anxiety = fitglm(data,'fu ~ anxiety___general_prior','Distribution','binomial');
-mdl_fu_concSeason = fitglm(data,'fu ~ conc_seasonCat','Distribution','binomial');
-mdl_fu_visit1Season = fitglm(data,'fu ~ visit1_seasonCat','Distribution','binomial');
-
-% do we have data on personal or family history of migraine?
-
-mdl_fu_full = fitglm(data,'fu ~ conc_seasonCat + age + race + p_pedmidas_score + concuss_number + prev_cat + p_prov_seen___conc','Distribution','binomial');
-
-mdl_fu_final = fitglm(data,'fu ~ concuss_number + prev_cat','Distribution','binomial');
+mdl_fu_haprog = fitglm(data,'fu ~ ha_program','Distribution','binomial');
+mdl_fu_migraine = fitglm(data,'fu ~ mig_pheno','Distribution','binomial');
+mdl_fu_priorHA = fitglm(data,'fu ~ prior_ha','Distribution','binomial');
 
 % Covariates for preventive prescription and outcome
 % - Comorbid anxiety and depression
@@ -235,9 +269,9 @@ mdl_prev_age = fitglm(data,'prev_cat ~ age','Distribution','binomial');
 mdl_prev_sex = fitglm(data,'prev_cat ~ gender','Distribution','binomial');
 mdl_prev_race = fitglm(data,'prev_cat ~ race','Distribution','binomial');
 mdl_prev_ethnicity = fitglm(data,'prev_cat ~ ethnicity','Distribution','binomial');
-mdl_prev_severity = fitglm(data,'prev_cat ~ p_sev_usual','Distribution','binomial');
+mdl_prev_severity = fitglm(data,'prev_cat ~ severity_grade','Distribution','binomial');
 mdl_prev_frequency = fitglm(data,'prev_cat ~ freq_bad','Distribution','binomial');
-mdl_prev_disability = fitglm(data,'prev_cat ~ p_pedmidas_score','Distribution','binomial');
+mdl_prev_disability = fitglm(data,'prev_cat ~ pedmidas_grade','Distribution','binomial');
 mdl_prev_conc = fitglm(data,'prev_cat ~ concuss_number','Distribution','binomial');
 mdl_prev_medoveruse = fitglm(data,'prev_cat ~ med_overuse','Distribution','binomial');
 mdl_prev_mig = fitglm(data,'prev_cat ~ mig_pheno','Distribution','binomial');
@@ -247,10 +281,8 @@ mdl_prev_dayspost1 = fitglm(data,'prev_cat ~ days_post_visit1','Distribution','b
 mdl_prev_concspec = fitglm(data,'prev_cat ~ p_prov_seen___conc','Distribution','binomial');
 mdl_prev_depress = fitglm(data,'prev_cat ~ depression___general_prior','Distribution','binomial');
 mdl_prev_anxiety = fitglm(data,'prev_cat ~ anxiety___general_prior','Distribution','binomial');
+mdl_prev_priorHA = fitglm(data,'prev_cat ~ prior_ha','Distribution','binomial');
 
-mdl_prev_full = fitglm(data,'prev_cat ~ age + gender + freq_bad + p_pedmidas_score + concuss_number + mig_pheno + ha_cont','Distribution','binomial');
-
-mdl_prev_final = fitglm(data,'prev_cat ~ age + p_pedmidas_score','Distribution','binomial');
 
 % Follow up at 6 weeks
 data.fu_outcome = NaN*ones(height(data),1);
@@ -259,7 +291,15 @@ data.fu_outcome(data.follow_ben=='non_ben') = 2;
 data.fu_outcome(data.follow_ben=='som_ben') = 3;
 data.fu_outcome(data.follow_ben=='sig_ben') = 4;
 
-[B,dev,stats] = mnrfit([data.prev_cat data.p_pedmidas_score data.age],data.fu_outcome,'model','ordinal');
+% Set missing values to all be 1 or all be 4
+data.fu_outcomeReplace1 = data.fu_outcome;
+data.fu_outcomeReplace1(isnan(data.fu_outcome)) = 1;
+
+data.fu_outcomeReplace4 = data.fu_outcome;
+data.fu_outcomeReplace4(isnan(data.fu_outcome)) = 4;
+
+[Bfull,devFull,statsFull] = mnrfit([data.age data.gender data.eth_nonHisp data.concuss_number data.days_post_visit1 data.pedmidas_grade data.freq_bad data.ha_cont data.mig_pheno data.prev_cat],data.fu_outcome,'model','ordinal');
+tbl_fu_full = mnrfit_tbl(statsFull,{'age','legal sex','ethicity non Hispanic','concussion number','days post injury 1st visit','pedmidas grade','frequency of bad HA','continuous HA','migraine phenotype','preventive'});
 
 %% Make sure we have all pfizer registry eligible respondents
 % -	Age: 8-17 at time of first visit
