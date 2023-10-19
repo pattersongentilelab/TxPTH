@@ -1,44 +1,9 @@
 % Analyze PTH acute treatment data
 
-% load Pfizer dataset
+% load triptans dataset
 data_path_reg = getpref('TxPTH','pfizerDataPath');
-load([data_path_reg '/PfizerHAdataAug23.mat'])
+load([data_path_reg '/pthTxTrp_noID.mat'])
 
-pfizer = data;
-
-% load Tx PTH dataset
-data_path_tx = getpref('TxPTH','TxPthDataPath');
-load([data_path_tx '/Triptans_101323.mat'])
-pth_tx = data;
-
-clear data data_path*
-
-%% Combine relevant pfizer and pth_tx datasets
-
-% remove duplicate records in pth_tx dataset (only includes 8 - 17yrs) and those without a pfizer id 
-uniqueID = unique(pth_tx.pfizer_id);
-for x = 1:length(uniqueID)
-    temp = find(pth_tx.pfizer_id==uniqueID(x));
-    if length(temp)>1
-        temp2 = 1:height(pth_tx); temp2 = temp2(temp2~=temp(1));
-        pth_tx = pth_tx(temp2,:);
-    end
-end
-
-pth_tx = pth_tx(~isnan(pth_tx.pfizer_id),:);
-
-% join with pfizer data
-pfizer_short = pfizer;
-pfizer_short.Properties.VariableNames{'record_id'} = 'pfizer_id';
-
-data = join(pth_tx,pfizer_short,'Keys','pfizer_id');
-
-clear temp* uniqueID x
-
-
-% remove variables (columns) with all zeros
-masktable = varfun(@(V) isnumeric(V) && ~any(V), data);
-data(:,masktable{:,:}) = [];
 
 %% Inclusion criteria (run on PTH treatment dataset)
 
@@ -46,87 +11,6 @@ data(:,masktable{:,:}) = [];
 % by triptan forms that have been filled out
 data = data(data.num_prior_meds>=0 & data.age>8 & data.age<18,:);
 
-
-% days post injury
-data.days_post = between(data.date_onset,data.firstvisit,'Days');
-data.days_post = split(data.days_post,'d');
-
-%% determine season of concussion, first visit, and follow up visit
-% winter december - february
-% spring march - may
-% summer june - august
-% fall september - november
-
-data.conc_season = NaN*ones(height(data),1);
-data.conc_month = month(data.date_onset);
-data.conc_season(data.conc_month==12 | data.conc_month==1 | data.conc_month==2) = 1;
-data.conc_season(data.conc_month==3 | data.conc_month==4 | data.conc_month==5) = 2;
-data.conc_season(data.conc_month==6 | data.conc_month==7 | data.conc_month==8) = 3;
-data.conc_season(data.conc_month==9 | data.conc_month==10 | data.conc_month==11) = 4;
-data.conc_seasonCat = categorical(data.conc_season,[4 1 2 3],{'fall','winter','spring','summer'});
-
-
-%% Run ICHD3 diagnostic algorithm and update categories
-
-[ICHD3] = ichd3_Dx(data);
-
-data.pheno = ICHD3.pheno;
-
-data.mig_pheno = zeros(height(data),1);
-data.mig_pheno(data.pheno=='migraine'|data.pheno=='chronic_migraine'|data.pheno=='prob_migraine') = 1;
-data.cm = zeros(height(data),1);
-data.cm(data.pheno=='chronic_migraine') = 1;
-
-data.freq_bad = NaN*ones(height(data),1);
-data.freq_bad (data.p_fre_bad=='never') = 1;
-data.freq_bad (data.p_fre_bad=='1mo') = 2;
-data.freq_bad (data.p_fre_bad=='1to3mo') = 3;
-data.freq_bad (data.p_fre_bad=='1wk') = 4;
-data.freq_bad (data.p_fre_bad=='2to3wk') = 5;
-data.freq_bad (data.p_fre_bad=='3wk') = 6;
-data.freq_bad (data.p_fre_bad=='daily') = 7;
-data.freq_bad (data.p_fre_bad=='always') = 8;
-
-data.pedmidas_grade = NaN*ones(height(data),1);
-data.pedmidas_grade(data.p_pedmidas_score<=10) = 0;
-data.pedmidas_grade(data.p_pedmidas_score>10 & data.p_pedmidas_score<=30) = 1;
-data.pedmidas_grade(data.p_pedmidas_score>30 & data.p_pedmidas_score<=50) = 2;
-data.pedmidas_grade(data.p_pedmidas_score>50) = 3;
-
-% overall severity grade
-data.severity_grade = NaN*ones(height(data),1);
-data.severity_grade(data.p_sev_overall=='mild') = 1;
-data.severity_grade(data.p_sev_overall=='mod') = 2;
-data.severity_grade(data.p_sev_overall=='sev') = 3;
-
-data.race = reordercats(data.race,{'white','black','asian','am_indian','pacific_island','no_answer','unk'});
-data.ethnicity = reordercats(data.ethnicity,{'no_hisp','hisp','no_answer','unk'});
-data.prior_ha_in_lifetime = reordercats(data.prior_ha_in_lifetime,{'no','sick','epi','cont_epi','cont','mis'});
-data.race_white = zeros(height(data),1);
-data.race_white(data.race=='white') = 1;
-data.race_black = zeros(height(data),1);
-data.race_black(data.race=='black') = 1;
-data.race_asian = zeros(height(data),1);
-data.race_asian(data.race=='asian') = 1;
-data.eth_nonHisp = zeros(height(data),1);
-data.eth_nonHisp(data.ethnicity=='no_hisp') = 1;
-data.eth_Hisp = zeros(height(data),1);
-data.eth_Hisp(data.ethnicity=='hisp') = 1;
-
-data.ha_cont = zeros(height(data),1);
-data.ha_cont(data.p_current_ha_pattern=='cons_flare'|data.p_current_ha_pattern=='cons_same') = 1;
-
-% include any duration of med overuse
-data.med_overuse = zeros(height(data),1);
-data.med_overuse(data.p_duration_overuse=='1to3mo'|data.p_duration_overuse=='less_1mo'|data.p_duration_overuse=='3mo_greater') = 1;
-
-
-% headache program vs. general neurology
-data.prov_nm = categorical(data.prov_nm);
-data.ha_program = zeros(height(data),1);
-data.ha_program(data.prov_nm=='BARMHERZIG, REBECCA'|data.prov_nm=='CHADEHUMBE, MADELINE'|data.prov_nm=='MALAVOLTA, CARRIE  P'|...
-    data.prov_nm=='PATTERSON GENTILE, CARLYN A'|data.prov_nm=='STEPHENSON, DONNA'|data.prov_nm=='SZPERKA, CHRISTINA L'|...
-    data.prov_nm=='ZIPLOW, JASON'|data.prov_nm=='ANTO, MARISSA'|data.prov_nm=='KUMAR, ISHANI'|data.prov_nm=='YOUNKIN, DONALD'|data.prov_nm=='HADFIELD, JOCELYN H') = 1;
 
 % triptan category
 data.trip_cat = zeros(height(data),1);
