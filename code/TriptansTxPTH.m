@@ -156,26 +156,17 @@ data_trp.trp3_response = NaN*ones(height(data_trp),1);
 data_trp.trp3_response(data_trp.response_triptan3___no_resp==1) = 2;
 data_trp.trp3_response(data_trp.response_triptan3___partial_resp==1) = 3;
 
-[~,~,statsFreq] = mnrfit([data_trp.freq_bad],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_frequency = mnrfit_tbl(statsFreq,{'frequency'});
-[~,~,statsDis] = mnrfit([data_trp.pedmidas_grade],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_disability = mnrfit_tbl(statsDis,{'disability grade'});
-[~,~,statsSev] = mnrfit([data_trp.severity_grade],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_severity = mnrfit_tbl(statsSev,{'severity grade'});
-[~,~,statsCont] = mnrfit([data_trp.ha_cont],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_continuous = mnrfit_tbl(statsCont,{'continuous'});
-[~,~,statsMig] = mnrfit([data_trp.mig_pheno],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_migraine = mnrfit_tbl(statsMig,{'migraine phenotype'});
+mdl_TrpFreq = fitmnr(data_trp,'trp1_response ~ freq_bad',ModelType="ordinal");
+mdl_TrpDis = fitmnr(data_trp,'trp1_response ~ pedmidas_grade',ModelType="ordinal");
+mdl_TrpSeverity = fitmnr(data_trp,'trp1_response ~ severity_grade',ModelType="ordinal");
+mdl_TrpCont = fitmnr(data_trp,'trp1_response ~ ha_cont',ModelType="ordinal");
+mdl_TrpMig = fitmnr(data_trp,'trp1_response ~ mig_pheno',ModelType="ordinal");
+mdl_TrpPriorMed = fitmnr(data_trp,'trp1_response ~ num_prior_meds',ModelType="ordinal");
 
-% other medications used with triptans
-[~,~,statsWnsaid] = mnrfit([data_trp.freq_reg_abort_meds_v2___nsaid],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_wNsaids = mnrfit_tbl(statsWnsaid,{'used with NSAID'});
-[~,~,statsWdopa] = mnrfit([data_trp.freq_reg_abort_meds_v2___dopa],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_wDopa = mnrfit_tbl(statsWdopa,{'used with DA'});
+mdl_TrpNSAID = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___nsaid',ModelType="ordinal");
+mdl_TrpDopa = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___dopa',ModelType="ordinal");
 
-% number of prior medications
-[~,~,statsPriorMed] = mnrfit([data_trp.num_prior_meds],data_trp.trp1_response,'model','ordinal');
-tbl_outcome_PriorMed = mnrfit_tbl(statsPriorMed,{'number of prior meds'});
+mdl_TrpFull = fitmnr(data_trp,'trp1_response ~ pedmidas_grade + severity_grade + ha_cont + num_prior_meds',ModelType="ordinal");
 
 
 %% Side effects
