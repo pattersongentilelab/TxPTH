@@ -1,16 +1,18 @@
 
-function [tbl] = mnrfit_tbl(stats,VarNames)
+function [tbl] = mnrfit_tbl(mdl)
 
-nVar = size(VarNames,2);
+VarNames = mdl.CoefficientNames;
+interceptNo = length(mdl.CoefficientNames(contains(mdl.CoefficientNames,"Intercept")==1));
+nVar = length(mdl.CoefficientNames)-interceptNo;
+VarNames = VarNames(interceptNo+1:end);
 
-tbl = table('Size',[nVar 1],'VariableTypes',{'double'},'VariableNames',{'estimate'},'RowNames',VarNames);
+tbl = table('Size',[nVar 4],'VariableTypes',{'double','double','double','double'},'VariableNames',{'estimate','low95','hi95','p_val'},'RowNames',VarNames);
 
-y = 1:length(stats.beta);
-y = y(length(stats.beta)-nVar+1:end);
-
-predicted = stats.beta(y);
-se = stats.se(y);
-tbl.estimate = exp(predicted);
-tbl.low95 = exp(predicted - (1.96*se));
-tbl.hi95 = exp(predicted + (1.96*se));
-tbl.p_val = stats.p(y);
+for i = 1:nVar
+    predicted = mdl.Coefficients.Value(i+interceptNo);
+    se = mdl.Coefficients.SE(i+interceptNo);
+    tbl.estimate(i) = exp(predicted);
+    tbl.low95(i) = exp(predicted - (1.96*se));
+    tbl.hi95(i) = exp(predicted + (1.96*se));
+    tbl.p_val(i) = mdl.Coefficients.pValue(i+interceptNo);
+end

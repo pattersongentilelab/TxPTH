@@ -9,7 +9,7 @@ load([data_path_reg '/pthTxTrp_noID.mat'])
 
 % select only participants age 8 - 17 years who have PTH within one year of their concussion
 % by triptan forms that have been filled out
-data = data(data.num_prior_meds>=0 & data.age>8 & data.age<18,:);
+data = data(data.num_prior_meds>=0 & data.age>8 & data.age<18 & data.days_post<=365,:);
 
 
 % triptan category
@@ -156,18 +156,56 @@ data_trp.trp3_response = NaN*ones(height(data_trp),1);
 data_trp.trp3_response(data_trp.response_triptan3___no_resp==1) = 2;
 data_trp.trp3_response(data_trp.response_triptan3___partial_resp==1) = 3;
 
+% make race and ethnicity numeric
+data_trp.race_num = zeros(height(data_trp),1);
+data_trp.race_num(data_trp.race=='white') = 1;
+data_trp.race_num(data_trp.race=='black') = 2;
+data_trp.race_num(data_trp.race=='asian') = 3;
+data_trp.race_num(data_trp.race=='no_answer') = 4;
+data_trp.race_num(data_trp.race=='unk') = 5;
+
+data_trp.eth_num = zeros(height(data_trp),1);
+data_trp.eth_num(data_trp.ethnicity=='no_hisp') = 1;
+data_trp.eth_num(data_trp.ethnicity=='hisp') = 2;
+data_trp.eth_num(data_trp.ethnicity=='no_answer') = 3;
+
+mdl_TrpSex = fitmnr(data_trp,'trp1_response ~ gender',ModelType="ordinal",CategoricalPredictors="gender");
+tbl_TrpSex = mnrfit_tbl(mdl_TrpSex);
+mdl_TrpAge = fitmnr(data_trp,'trp1_response ~ age',ModelType="ordinal");
+tbl_TrpAge = mnrfit_tbl(mdl_TrpAge);
+mdl_TrpRace = fitmnr(data_trp,'trp1_response ~ race_num',ModelType="ordinal",CategoricalPredictors="race_num");
+tbl_TrpRace = mnrfit_tbl(mdl_TrpRace);
+mdl_TrpEth = fitmnr(data_trp,'trp1_response ~ eth_num',ModelType="ordinal",CategoricalPredictors="eth_num");
+tbl_TrpEth = mnrfit_tbl(mdl_TrpEth);
+
 mdl_TrpFreq = fitmnr(data_trp,'trp1_response ~ freq_bad',ModelType="ordinal");
-mdl_TrpDis = fitmnr(data_trp,'trp1_response ~ pedmidas_grade',ModelType="ordinal");
-mdl_TrpSeverity = fitmnr(data_trp,'trp1_response ~ severity_grade',ModelType="ordinal");
-mdl_TrpCont = fitmnr(data_trp,'trp1_response ~ ha_cont',ModelType="ordinal");
-mdl_TrpMig = fitmnr(data_trp,'trp1_response ~ mig_pheno',ModelType="ordinal");
+tbl_TrpFreq = mnrfit_tbl(mdl_TrpFreq);
+mdl_TrpDis = fitmnr(data_trp,'trp1_response ~ pedmidas_grade',ModelType="ordinal",CategoricalPredictors="pedmidas_grade");
+tbl_TrpDis = mnrfit_tbl(mdl_TrpDis);
+mdl_TrpSeverity = fitmnr(data_trp,'trp1_response ~ severity_grade',ModelType="ordinal",CategoricalPredictors="severity_grade");
+tbl_TrpSeverity = mnrfit_tbl(mdl_TrpSeverity);
+mdl_TrpCont = fitmnr(data_trp,'trp1_response ~ ha_cont',ModelType="ordinal",CategoricalPredictors="ha_cont");
+tbl_TrpCont = mnrfit_tbl(mdl_TrpCont);
+mdl_TrpMig = fitmnr(data_trp,'trp1_response ~ mig_pheno',ModelType="ordinal",CategoricalPredictors="mig_pheno");
+tbl_TrpMig = mnrfit_tbl(mdl_TrpMig);
 mdl_TrpPriorMed = fitmnr(data_trp,'trp1_response ~ num_prior_meds',ModelType="ordinal");
+tbl_TrpPriorMed = mnrfit_tbl(mdl_TrpPriorMed);
+mdl_TrpMOH = fitmnr(data_trp,'trp1_response ~ med_overuse',ModelType="ordinal",CategoricalPredictors="med_overuse");
+tbl_TrpMOH = mnrfit_tbl(mdl_TrpMOH);
 
-mdl_TrpNSAID = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___nsaid',ModelType="ordinal");
-mdl_TrpDopa = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___dopa',ModelType="ordinal");
+mdl_TrpNSAID = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___nsaid',ModelType="ordinal",CategoricalPredictors="freq_reg_abort_meds_v2___nsaid");
+tbl_TrpNSAID = mnrfit_tbl(mdl_TrpNSAID);
+mdl_TrpDopa = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___dopa',ModelType="ordinal",CategoricalPredictors="freq_reg_abort_meds_v2___dopa");
+tbl_TrpDopa = mnrfit_tbl(mdl_TrpDopa);
 
-mdl_TrpFull = fitmnr(data_trp,'trp1_response ~ pedmidas_grade + severity_grade + ha_cont + num_prior_meds',ModelType="ordinal");
+mdl_TrpDaysPost = fitmnr(data_trp,'trp1_response ~ days_post',ModelType="ordinal");
+tbl_TrpDaysPost = mnrfit_tbl(mdl_TrpDaysPost);
 
+mdl_TrpFull = fitmnr(data_trp,'trp1_response ~ severity_grade + ha_cont + num_prior_meds + mig_pheno',ModelType="ordinal",CategoricalPredictors=["severity_grade" "ha_cont" "mig_pheno"]);
+tbl_TrpFull = mnrfit_tbl(mdl_TrpFull);
+
+mdl_TrpFinal = fitmnr(data_trp,'trp1_response ~ severity_grade + num_prior_meds + mig_pheno',ModelType="ordinal",CategoricalPredictors=["severity_grade" "mig_pheno"]);
+tbl_TrpFinal = mnrfit_tbl(mdl_TrpFinal);
 
 %% Side effects
 data_trp.trp_se = NaN*ones(height(data_trp),1);
@@ -182,3 +220,10 @@ data_trp.trp_se(data_trp.triptan_se_v2___oth==1) = 8;
 data_trp.trp_se(sum([data_trp.triptan_se_v2___chestpain data_trp.triptan_se_v2___numbting data_trp.triptan_se_v2___nausea data_trp.triptan_se_v2___tired data_trp.triptan_se_v2___dizz data_trp.triptan_se_v2___oth],2)>1) = 9;
 
 data_trp.trp_se = categorical(data_trp.trp_se,1:9,{'none','none_noted','chest_pain','numbness','nausea','tired','dizziness','other','multiple'});
+
+%% bootstrapped number of meds by triptan response
+
+trp_worse_med_no = prctile(bootstrp(1000,@median,data_trp.num_prior_meds(data_trp.trp1_response==1)),[50 2.5 97.5]);
+trp_no_med_no = prctile(bootstrp(1000,@median,data_trp.num_prior_meds(data_trp.trp1_response==2)),[50 2.5 97.5]);
+trp_partial_med_no = prctile(bootstrp(1000,@median,data_trp.num_prior_meds(data_trp.trp1_response==3)),[50 2.5 97.5]);
+trp_full_med_no = prctile(bootstrp(1000,@median,data_trp.num_prior_meds(data_trp.trp1_response==4)),[50 2.5 97.5]);
