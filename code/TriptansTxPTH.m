@@ -214,13 +214,13 @@ tbl_TrpNSAID = mnrfit_tbl(mdl_TrpNSAID);
 mdl_TrpDopa = fitmnr(data_trp,'trp1_response ~ freq_reg_abort_meds_v2___dopa',ModelType="ordinal",CategoricalPredictors="freq_reg_abort_meds_v2___dopa");
 tbl_TrpDopa = mnrfit_tbl(mdl_TrpDopa);
 
-mdl_TrpDaysPost = fitmnr(data_trp,'trp1_response ~ days_post',ModelType="ordinal");
+mdl_TrpDaysPost = fitmnr(data_trp,'trp1_response ~ days_post_trp1',ModelType="ordinal");
 tbl_TrpDaysPost = mnrfit_tbl(mdl_TrpDaysPost);
 
-mdl_TrpFull = fitmnr(data_trp,'trp1_response ~ severity_grade + ha_cont + num_prior_meds + mig_pheno',ModelType="ordinal",CategoricalPredictors=["severity_grade" "ha_cont" "mig_pheno"]);
+mdl_TrpFull = fitmnr(data_trp,'trp1_response ~ severity_grade + ha_cont + num_prior_meds + mig_pheno + days_post_trp1',ModelType="ordinal",CategoricalPredictors=["severity_grade" "ha_cont" "mig_pheno"]);
 tbl_TrpFull = mnrfit_tbl(mdl_TrpFull);
 
-mdl_TrpFinal = fitmnr(data_trp,'trp1_response ~ severity_grade + num_prior_meds + mig_pheno',ModelType="ordinal",CategoricalPredictors=["severity_grade" "mig_pheno"]);
+mdl_TrpFinal = fitmnr(data_trp,'trp1_response ~ severity_grade + num_prior_meds + mig_pheno + days_post_trp1',ModelType="ordinal",CategoricalPredictors=["severity_grade" "mig_pheno"]);
 tbl_TrpFinal = mnrfit_tbl(mdl_TrpFinal);
 
 %% Side effects
