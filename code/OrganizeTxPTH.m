@@ -223,7 +223,7 @@ clear data
 
 % load Triptan Tx PTH dataset
 data_path_tx = getpref('TxPTH','TxPthDataPath');
-load([data_path_tx '/Triptans_101323.mat'])
+load([data_path_tx '/Triptans_112023.mat'])
 pth_tx = data;
 
 uniqueID = unique(pth_tx.pfizer_id);
@@ -250,14 +250,20 @@ clear temp* uniqueID x
 masktable = varfun(@(V) isnumeric(V) && ~any(V), data);
 data(:,masktable{:,:}) = [];
 
-% days post injury
+% days post injury from first visit
 data.days_post = between(data.date_onset,data.firstvisit,'Days');
 data.days_post = split(data.days_post,'d');
 
-
+% days post injury triptans were tried
+data.days_post_trp1 = between(data.date_onset,data.trp1_date,'Days');
+data.days_post_trp1 = split(data.days_post_trp1,'d');
+data.days_post_trp2 = between(data.date_onset,data.trp2_date,'Days');
+data.days_post_trp2 = split(data.days_post_trp2,'d');
+data.days_post_trp3 = between(data.date_onset,data.trp3_date,'Days');
+data.days_post_trp3 = split(data.days_post_trp3,'d');
 data = removevars(data,{'record_id','pfizer_id','firstvisit','date_onset','visit_dt',...
     'prov_nm','clin_loc','locator_nm','street_long_deg_x','street_lat_deg_y','p_epi_conc_date',...
-    'p_con_start_date','p_prim_care_occ','c_epi_conc_date','c_con_conc_date'});
+    'p_con_start_date','p_prim_care_occ','c_epi_conc_date','c_con_conc_date','trp1_date','trp2_date','trp3_date'});
 
 save([data_path_reg '/pthTxTrp_noID.mat'],'data')
 clear data
