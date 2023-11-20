@@ -89,9 +89,25 @@ data.othMed_resp = mergecats(data.othMed_resp,{'no_effect','lost_effect'});
 data.trp1 = zeros(height(data),1);
 data.trp1(data.triptan_used_1st___riz==1) = 1;
 data.trp1(data.triptan_used_1st___sum==1) = 2;
-data.trp1(data.triptan_used_1st___zol==1) = 3;
-data.trp1(data.triptan_used_1st___alm==1) = 4;
-data.trp1 = categorical(data.trp1,[1 2 3 4 0],{'rizatriptan','sumatriptan','zolmatriptan','almotriptan','none'});
+data.trp1(data.triptan_used_1st___sum_nsl==1) = 3;
+data.trp1(data.triptan_used_1st___zol==1) = 4;
+data.trp1(data.triptan_used_1st___alm==1) = 5;
+data.trp1(data.triptan_used_1st___nar==1) = 6;
+data.trp1 = categorical(data.trp1,[1 2 3 4 5 6 0],{'rizatriptan','sumatriptan_oral','sumatriptan_in','zolmatriptan_oral','almotriptan','naratriptan','none'});
+
+data.trp2 = zeros(height(data),1);
+data.trp2(data.triptan_used_2nd___riz==1) = 1;
+data.trp2(data.triptan_used_2nd___zol==1) = 2;
+data.trp2(data.triptan_used_2nd___zol_nsl==1) = 3;
+data.trp2(data.triptan_used_2nd___alm==1) = 4;
+data.trp2(data.triptan_used_2nd___nar==1) = 5;
+data.trp2(data.triptan_used_2nd___fro==1) = 6;
+data.trp2 = categorical(data.trp2,[1 2 3 4 5 6 0],{'rizatriptan','zolmatriptan_oral','zolmatriptan_in','almotriptan','naratriptan','frovatriptan','none'});
+
+data.trp3 = zeros(height(data),1);
+data.trp3(data.triptan_used_3rd___zol_nsl==1) = 1;
+data.trp3(data.triptan_used_3rd___ele==1) = 2;
+data.trp3 = categorical(data.trp3,[1 2 0],{'zolmatriptan_in','eletriptan','none'});
 
 %% who was prescribed a triptan
 
