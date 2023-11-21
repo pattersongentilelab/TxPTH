@@ -237,6 +237,13 @@ tbl_OutcomeFinal = mnrfit_tbl(mdl_OutcomeFinal);
 % days post, ethnicity, and frequency of bad HA >15% impact on preventive relationship
 % with outcome
 
+mdl_OutcomeFinalMax = fitmnr(data,'fu_outcomeReplace4 ~ prev_cat + gender + eth_num + concuss_number + days_post_visit1 + freq_bad + ha_cont',...
+    ModelType="ordinal",CategoricalPredictors=["prev_cat" "gender" "eth_num" "ha_cont"]);
+tbl_OutcomeFinalMax = mnrfit_tbl(mdl_OutcomeFinalMax);
+
+mdl_OutcomeFinalMin = fitmnr(data,'fu_outcomeReplace1 ~ prev_cat + gender + eth_num + concuss_number + days_post_visit1 + freq_bad + ha_cont',...
+    ModelType="ordinal",CategoricalPredictors=["prev_cat" "gender" "eth_num" "ha_cont"]);
+tbl_OutcomeFinalMin = mnrfit_tbl(mdl_OutcomeFinalMin);
 
 % % univariable sensitivity analysis (Rx vs. Nutraceutical)
 mdl_oRxSex = fitmnr(dataRxN,'fu_outcome ~ gender',ModelType="ordinal",CategoricalPredictors="gender");
