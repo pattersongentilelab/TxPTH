@@ -22,10 +22,6 @@ data.prev_cat(data.follow_treat1_dur_cont<120 & (data.follow_treat_cat1___nut_pr
 
 data.prev_cat2 = categorical(data.prev_cat,[0 1],{'no_prev','prev'});
 
-data.prev_catFull = data.prev_cat;
-data.prev_catFull(data.follow_treat_cat2___rx_prev==1) = 2;
-data.prev_catFull2 = categorical(data.prev_catFull,[0 1 2],{'no_prev','nutr','rx'});
-
 % make race and ethnicity numeric
 data.race_num = zeros(height(data),1);
 data.race_num(data.race=='white') = 1;
@@ -39,33 +35,71 @@ data.eth_num(data.ethnicity=='no_hisp') = 1;
 data.eth_num(data.ethnicity=='hisp') = 2;
 data.eth_num(data.ethnicity=='no_answer') = 3;
 
+% replace continuous headache variable with confirmed chart review
+data.ha_contUc = data.ha_cont;
+data.ha_cont = zeros(height(data),1);
+data.ha_cont(data.diagnosis_chart_rev=='pth_epi') = 0;
+data.ha_cont(data.diagnosis_chart_rev=='pth_cont') = 1;
 
 %% compile treatment specifics
 
 data.tx_medoveruse = data.follow_treat_cat1___withdraw;
+data.tx_medoveruse(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_healthyhabits = data.follow_treat_cat1___hh;
+data.tx_healthyhabits(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_bh = zeros(height(data),1); 
 data.tx_bh(data.follow_treat_cat1___cbt==1|data.follow_treat_1_non_pharm___counsel==1) = 1;
+data.tx_bh(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_pt = data.follow_treat_cat1___pt;
+data.tx_pt(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_hep = data.follow_treat_1_non_pharm___hep;
+data.tx_hep(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_vision = data.follow_treat_1_non_pharm___vision;
+data.tx_vision(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_nerveblock = data.follow_treat_cat1___nerv;
+data.tx_nerveblock(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_amitrip = data.follow_treat_1_rx_prev___amitrip;
+data.tx_amitrip(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_nortrip = data.follow_treat_1_rx_prev___nortrip;
+data.tx_nortrip(data.follow_treat1_dur_cont>=120) = 0;
+data.tx_sertra = data.follow_treat_1_rx_prev___sertra;
+data.tx_sertra(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_cypro = data.follow_treat_1_rx_prev___cypro;
+data.tx_cypro(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_metopro = data.follow_treat_1_rx_prev___metopro;
+data.tx_metopro(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_propano = data.follow_treat_1_rx_prev___propano;
+data.tx_propano(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_topa = data.follow_treat_1_rx_prev___topa;
+data.tx_topa(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_gaba = data.follow_treat_1_rx_prev___gaba;
+data.tx_gaba(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_vpa = data.follow_treat_1_rx_prev___vpa;
+data.tx_vpa(data.follow_treat1_dur_cont>=120) = 0;
+data.tx_zonis = data.follow_treat_1_rx_prev___zonis;
+data.tx_zonis(data.follow_treat1_dur_cont>=120) = 0;
+data.tx_othRx = data.follow_treat_1_rx_prev___oth;
+data.tx_othRx(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_b2 = data.follow_treat_1_nut_prev___vitb2;
+data.tx_b2(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_vitD = data.follow_treat_1_nut_prev___vitd;
+data.tx_vitD(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_CoQ10 = data.follow_treat_1_nut_prev___coenzq10;
+data.tx_CoQ10(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_mag = data.follow_treat_1_nut_prev___mag;
+data.tx_mag(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_melatonin = data.follow_treat_1_nut_prev___melatonin;
+data.tx_melatonin(data.follow_treat1_dur_cont>=120) = 0;
+data.tx_othNut = data.follow_treat_1_nut_prev___oth;
+data.tx_othNut(data.follow_treat1_dur_cont>=120) = 0;
 
-num_bothPrev = length(data.age((data.tx_amitrip==1|data.tx_nortrip==1|data.tx_cypro==1|data.tx_metopro==1|data.tx_propano==1|...
-    data.tx_topa==1|data.tx_gaba==1|data.tx_vpa==1) & (data.tx_b2==1|data.tx_vitD==1|data.tx_CoQ10==1|data.tx_mag==1|data.tx_melatonin==1)));
+data.prev_catFull = data.prev_cat;
+data.prev_catFull(data.follow_treat_cat1___rx_prev==1 & data.prev_cat==1) = 2;
+data.prev_catFull(data.follow_treat_cat1___rx_prev==1 & data.follow_treat_cat1___nut_prev==1) = 3;
+data.prev_catFull2 = categorical(data.prev_catFull,[0 1 2 3],{'no_prev','nutr','rx','both'});
+
+data.num_prev = sum([data.tx_amitrip data.tx_nortrip data.tx_cypro data.tx_metopro data.tx_propano data.tx_topa data.tx_gaba data.tx_vpa data.tx_zonis data.tx_sertra data.tx_othRx ...
+    data.tx_b2 data.tx_vitD data.tx_CoQ10 data.tx_mag data.tx_melatonin data.tx_othRx],2);
 
 numRx_DisFreq = length(data.age(data.prev_cat==1 & (data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1)));
 numNoRx_DisFreq = length(data.age(data.prev_cat==0 & (data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1)));
@@ -295,3 +329,11 @@ mdl_oRxFinal = fitmnr(dataRxN,'fu_outcome ~ prev_catFull + gender + concuss_numb
 tbl_oRxFinal = mnrfit_tbl(mdl_oRxFinal);
 % pedmidas affected Rx vs. nutraceutical relationship with outcome >15%
 
+
+%% plots
+
+% percentage prescribed preventive
+pie(data.prev_catFull2)
+
+% agents recommended by outcome
+data.fu_outcome(isnan(data.fu_outcome)) = -1;

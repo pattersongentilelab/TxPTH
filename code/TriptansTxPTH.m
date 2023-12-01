@@ -11,6 +11,11 @@ load([data_path_reg '/pthTxTrp_noID.mat'])
 % by triptan forms that have been filled out
 data = data(data.num_prior_meds>=0 & data.age>8 & data.age<18 & data.days_post<=365,:);
 
+% replace continuous headache variable with confirmed chart review
+data.ha_contUc = data.ha_cont;
+data.ha_cont = zeros(height(data),1);
+data.ha_cont(data.diagnosis_chart_rev=='pth_epi') = 0;
+data.ha_cont(data.diagnosis_chart_rev=='pth_cont') = 1;
 
 % triptan category
 data.trip_cat = zeros(height(data),1);
