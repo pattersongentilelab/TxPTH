@@ -11,8 +11,8 @@ tbl = table('Size',[nVar 4],'VariableTypes',{'double','double','double','double'
 for i = 1:nVar
     predicted = mdl.Coefficients.Value(i+interceptNo);
     se = mdl.Coefficients.SE(i+interceptNo);
-    tbl.estimate(i) = exp(predicted);
-    tbl.low95(i) = exp(predicted - (1.96*se));
-    tbl.hi95(i) = exp(predicted + (1.96*se));
+    tbl.estimate(i) = 1/exp(predicted);
+    tbl.hi95(i) = 1/exp(predicted - (1.96*se));
+    tbl.low95(i) = 1/exp(predicted + (1.96*se));
     tbl.p_val(i) = mdl.Coefficients.pValue(i+interceptNo);
 end

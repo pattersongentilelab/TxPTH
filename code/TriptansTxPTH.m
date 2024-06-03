@@ -162,6 +162,12 @@ tbl_othMed = lmfitBi_tbl(mdl_trip_othMeds);
 %% Triptan efficacy
 
 data_trp = data(data.trip_cat==1,:);
+for x = 1:height(data_trp)
+    if isnan(data_trp.days_post_trp1(x))
+        data_trp.days_post_trp1(x) = data_trp.days_post(x);
+    end
+end
+data_no_trp = data(data.trip_cat==0,:);
 data_trp.trp1_response = NaN*ones(height(data_trp),1);
 data_trp.trp1_response(data_trp.response_triptan1___worse_resp==1) = 1;
 data_trp.trp1_response(data_trp.response_triptan1___no_resp==1) = 2;
