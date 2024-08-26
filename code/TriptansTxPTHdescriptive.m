@@ -119,55 +119,25 @@ data.trp3(data.triptan_used_3rd___zol_nsl==1) = 1;
 data.trp3(data.triptan_used_3rd___ele==1) = 2;
 data.trp3 = categorical(data.trp3,[1 2 0],{'zolmatriptan_in','eletriptan','none'});
 
-%% who was prescribed a triptan
-
-mdl_trip_age = fitglm(data,'trip_cat ~ age','Distribution','binomial');
-tbl_age = lmfitBi_tbl(mdl_trip_age);
-
-mdl_trip_sex = fitglm(data,'trip_cat ~ gender','Distribution','binomial');
-tbl_sex = lmfitBi_tbl(mdl_trip_sex);
-
-mdl_trip_race = fitglm(data,'trip_cat ~ race','Distribution','binomial');
-tbl_race = lmfitBi_tbl(mdl_trip_race);
-
-mdl_trip_ethnicity = fitglm(data,'trip_cat ~ ethnicity','Distribution','binomial');
-tbl_ethnicity = lmfitBi_tbl(mdl_trip_ethnicity);
-
-mdl_trip_severity = fitglm(data,'trip_cat ~ severity_grade','Distribution','binomial');
-tbl_severity = lmfitBi_tbl(mdl_trip_severity);
-
-mdl_trip_frequency = fitglm(data,'trip_cat ~ freq_bad','Distribution','binomial');
-tbl_frequency = lmfitBi_tbl(mdl_trip_frequency);
-
-mdl_trip_disability = fitglm(data,'trip_cat ~ pedmidas_grade','Distribution','binomial');
-tbl_disability = lmfitBi_tbl(mdl_trip_disability);
-
-mdl_trip_medoveruse = fitglm(data,'trip_cat ~ med_overuse','Distribution','binomial');
-tbl_medoveruse = lmfitBi_tbl(mdl_trip_medoveruse);
-
-mdl_trip_mig = fitglm(data,'trip_cat ~ mig_pheno','Distribution','binomial');
-tbl_mig = lmfitBi_tbl(mdl_trip_mig);
-
-mdl_trip_cont = fitglm(data,'trip_cat ~ ha_cont','Distribution','binomial');
-tbl_cont = lmfitBi_tbl(mdl_trip_cont);
-
-mdl_trip_haprog = fitglm(data,'trip_cat ~ ha_program','Distribution','binomial');
-tbl_haprog = lmfitBi_tbl(mdl_trip_haprog);
-
-mdl_trip_dayspost = fitglm(data,'trip_cat ~ days_post','Distribution','binomial');
-tbl_dayspost = lmfitBi_tbl(mdl_trip_dayspost);
-
 data.acuteChronic = ones(height(data),1);
 data.acuteChronic(data.days_post<90) = 0;
 data.acuteChronic = categorical(data.acuteChronic,[0 1],{'acute','chronic'});
-mdl_trip_acuteVchronic = fitglm(data,'trip_cat ~ acuteChronic','Distribution','binomial');
-tbl_acuteVchronic = lmfitBi_tbl(mdl_trip_acuteVchronic);
 
-mdl_trip_othMeds_resp = fitglm(data,'trip_cat ~ othMed_resp','Distribution','binomial');
-tbl_othMeds_resp = lmfitBi_tbl(mdl_trip_othMeds_resp);
+%% who was prescribed a triptan
 
-mdl_trip_othMeds = fitglm(data,'trip_cat ~ num_prior_meds','Distribution','binomial');
-tbl_othMed = lmfitBi_tbl(mdl_trip_othMeds);
+[p_presAge,tbl_presAge,stats_presAge] = kruskalwallis(data.age,data.trip_cat);
+[tbl_presSex,chi2_presSex,p_presSex] = crosstab(data.gender,data.trip_cat);
+[tbl_presRace,chi2_presRace,p_presRace] = crosstab(data.race,data.trip_cat);
+[tbl_presEth,chi2_presEth,p_presEth] = crosstab(data.ethnicity,data.trip_cat);
+[tbl_presCont,chi2_presCont,p_presCont] = crosstab(data.ha_cont,data.trip_cat);
+[tbl_presMOH,chi2_presMOH,p_presMOH] = crosstab(data.med_overuse,data.trip_cat);
+[tbl_presMig,chi2_presMig,p_presMig] = crosstab(data.mig_pheno,data.trip_cat);
+[tbl_presHAprog,chi2_presHAprog,p_presHAprog] = crosstab(data.ha_program,data.trip_cat);
+[p_presDaysPost,tbl_presDaysPost,stats_presDaysPost] = kruskalwallis(data.days_post,data.trip_cat);
+[tbl_presAC,chi2_presAC,p_presAC] = crosstab(data.acuteChronic,data.trip_cat);
+[p_presPriorMed,tbl_presPriorMed,stats_presPriorMed] = kruskalwallis(data.num_prior_meds,data.trip_cat);
+
+
 
 
 %% Triptan efficacy
@@ -197,50 +167,22 @@ data_trp.trp3_response(data_trp.response_triptan3___partial_resp==1) = 1;
 data_trp.trp1_responseV2 = data_trp.trp1_response;
 data_trp.trp1_responseV2(data_trp.trp1_responseV2==-1) = 0;
 
-% primary outcome vs. primary predictor and covariates
-mdl_TrpDaysPost = fitmnr(data_trp,'trp1_responseV2 ~ days_post_trp1',ModelType="ordinal");
-tbl_TrpDaysPost = mnrfit_tbl(mdl_TrpDaysPost);
-mdl_TrpFreq = fitmnr(data_trp,'trp1_responseV2 ~ freq_bad',ModelType="ordinal");
-tbl_TrpFreq = mnrfit_tbl(mdl_TrpFreq);
-mdl_TrpDis = fitmnr(data_trp,'trp1_responseV2 ~ pedmidas_grade',ModelType="ordinal");
-tbl_TrpDis = mnrfit_tbl(mdl_TrpDis);
-mdl_TrpSeverity = fitmnr(data_trp,'trp1_responseV2 ~ severity_grade',ModelType="ordinal");
-tbl_TrpSeverity = mnrfit_tbl(mdl_TrpSeverity);
-mdl_TrpCont = fitmnr(data_trp,'trp1_responseV2 ~ ha_cont',ModelType="ordinal",CategoricalPredictors="ha_cont");
-tbl_TrpCont = mnrfit_tbl(mdl_TrpCont);
-mdl_TrpPriorMed = fitmnr(data_trp,'trp1_responseV2 ~ num_prior_meds',ModelType="ordinal");
-tbl_TrpPriorMed = mnrfit_tbl(mdl_TrpPriorMed);
-mdl_TrpMOH = fitmnr(data_trp,'trp1_responseV2 ~ med_overuse',ModelType="ordinal",CategoricalPredictors="med_overuse");
-tbl_TrpMOH = mnrfit_tbl(mdl_TrpMOH);
-
 data_trp.nsaid_dopa = zeros(height(data_trp),1);
 data_trp.nsaid_dopa(data_trp.freq_reg_abort_meds_v2___nsaid==1) = 1;
 data_trp.nsaid_dopa(data_trp.freq_reg_abort_meds_v2___dopa==1) = 1;
-mdl_TrpNSAIDdopa = fitmnr(data_trp,'trp1_responseV2 ~ nsaid_dopa',ModelType="ordinal",CategoricalPredictors="nsaid_dopa");
-tbl_TrpNSAIDdopa = mnrfit_tbl(mdl_TrpNSAIDdopa);
 
-% primary predictor vs. covariates
-mdl_DpFreq = fitlm(data_trp,'days_post_trp1 ~ freq_bad','RobustOpts','on');
-tbl_DpFreq = lm_tbl_plot(mdl_DpFreq);
-mdl_DpDis = fitlm(data_trp,'days_post_trp1 ~ pedmidas_grade','RobustOpts','on');
-tbl_DpDis = lm_tbl_plot(mdl_DpDis);
-mdl_DpSeverity = fitlm(data_trp,'days_post_trp1 ~ severity_grade','RobustOpts','on');
-tbl_DpSeverity = lm_tbl_plot(mdl_DpSeverity);
-mdl_DpCont = fitlm(data_trp,'days_post_trp1 ~ ha_cont','RobustOpts','on');
-tbl_DpCont = lm_tbl_plot(mdl_DpCont);
-mdl_DpPriorMed = fitlm(data_trp,'days_post_trp1 ~ num_prior_meds','RobustOpts','on');
-tbl_DpPriorMed = lm_tbl_plot(mdl_DpPriorMed);
-mdl_DpMOH = fitlm(data_trp,'days_post_trp1 ~ med_overuse','RobustOpts','on');
-tbl_DpMOH = lm_tbl_plot(mdl_DpMOH);
-mdl_DpNSAIDdopa = fitlm(data_trp,'days_post_trp1 ~ nsaid_dopa','RobustOpts','on');
-tbl_DpNSAIDdopa = lm_tbl_plot(mdl_DpNSAIDdopa);
+% efficacy vs. covariates
+data_trp.outcome = zeros(height(data_trp),1);
+data_trp.outcome(~isnan(data_trp.trp1_responseV2)) = 1;
+data_trp_comp = data_trp;
+data_trp = data_trp(data_trp.outcome==1,:);
 
+[rho_respDaysPost,p_respDaysPost] = corr(data_trp.days_post_trp1,data_trp.trp1_responseV2);
+[p_respCont,tbl_respCont,stats_respCont] = kruskalwallis(data_trp.trp1_responseV2,data_trp.ha_cont);
+[rho_respPriorMed,p_respPriorMed] = corr(data_trp.num_prior_meds,data_trp.trp1_responseV2);
+[p_respMOH,tbl_respMOH,stats_respMOH] = kruskalwallis(data_trp.trp1_responseV2,data_trp.med_overuse);
+[p_respCombo,tbl_respCombo,stats_respCombo] = kruskalwallis(data_trp.trp1_responseV2,data_trp.nsaid_dopa);
 
-mdl_TrpFull = fitmnr(data_trp,'trp1_responseV2 ~ pedmidas_grade + med_overuse + nsaid_dopa + num_prior_meds + days_post_trp1',ModelType="ordinal",CategoricalPredictors=["nsaid_dopa" "med_overuse"]);
-tbl_TrpFull = mnrfit_tbl(mdl_TrpFull);
-
-mdl_TrpFinal = fitmnr(data_trp,'trp1_responseV2 ~ severity_grade + num_prior_meds + mig_pheno + days_post_trp1',ModelType="ordinal",CategoricalPredictors=["severity_grade" "mig_pheno"]);
-tbl_TrpFinal = mnrfit_tbl(mdl_TrpFinal);
 
 %% Side effects
 data_trp.trp_se = NaN*ones(height(data_trp),1);
@@ -255,3 +197,4 @@ data_trp.trp_se(data_trp.triptan_se_v2___oth==1) = 8;
 data_trp.trp_se(sum([data_trp.triptan_se_v2___chestpain data_trp.triptan_se_v2___numbting data_trp.triptan_se_v2___nausea data_trp.triptan_se_v2___tired data_trp.triptan_se_v2___dizz data_trp.triptan_se_v2___oth],2)>1) = 9;
 
 data_trp.trp_se = categorical(data_trp.trp_se,1:9,{'none','none_noted','chest_pain','numbness','nausea','tired','dizziness','other','multiple'});
+

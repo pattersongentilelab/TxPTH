@@ -4,17 +4,16 @@
 data_path_reg = getpref('TxPTH','pfizerDataPath');
 load([data_path_reg '/pthTxPrev_noID.mat'])
 
-Bounds = 1; % 0 runs missing outcome data set to NaN, runs missing outcome data set to 1 (minima), runs missing outcome data set to 4 (maxima)
-
-
 %% Inclusion criteria (run on PTH treatment dataset)
 
 
 % Preventive pharmacologic therapy started within 4 months of concussion,
-% and symptomatic at time of visit
+% and symptomatic at time of visit and did not receive a nerve block
+
+data = data(data.days_post_visit1<=120,:);
+data = data(data.diagnosis_chart_rev=='pth_epi'|data.diagnosis_chart_rev=='pth_cont',:);
 
 
-data = data(data.days_post_visit1<120 & (data.diagnosis_chart_rev=='pth_epi'|data.diagnosis_chart_rev=='pth_cont'),:);
 
 
 % Separate those who received treatement within the first 4 months from
@@ -24,14 +23,23 @@ data.prev_cat(data.follow_treat1_dur_cont<120 & (data.follow_treat_cat1___nut_pr
 
 data.prev_cat2 = categorical(data.prev_cat,[0 1],{'no_prev','prev'});
 
-data.race = removecats(data.race,{'am_indian','pacific_island','no_answer','unk'});
-data.ethnicity = removecats(data.ethnicity,{'no_answer','unk'});
+data.race = mergecats(data.race,{'unk','am_indian','pacific_island','no_answer'});
+data.ethnicity = removecats(data.ethnicity,{'unk','no_answer'});
 
 % replace continuous headache variable with confirmed chart review
 data.ha_contUc = data.ha_cont;
 data.ha_cont = zeros(height(data),1);
 data.ha_cont(data.diagnosis_chart_rev=='pth_epi') = 0;
 data.ha_cont(data.diagnosis_chart_rev=='pth_cont') = 1;
+
+% For those with prior headache history, convert NaN to zeros assuming if
+% it is not documented, they did not have a prior history
+data.prior_ha(isnan(data.prior_ha)) = 0;
+
+% remove outcome data for participants whose follow up visit was >180 days
+% after their first visit
+data.fu(data.days_visit1to2<28 | data.days_visit1to2>180) = 0;
+data.follow_ben(data.days_visit1to2<28 | data.days_visit1to2>180) = '<undefined>';
 
 %% compile treatment specifics
 
@@ -48,8 +56,6 @@ data.tx_hep = data.follow_treat_1_non_pharm___hep;
 data.tx_hep(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_vision = data.follow_treat_1_non_pharm___vision;
 data.tx_vision(data.follow_treat1_dur_cont>=120) = 0;
-data.tx_nerveblock = data.follow_treat_cat1___nerv;
-data.tx_nerveblock(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_amitrip = data.follow_treat_1_rx_prev___amitrip;
 data.tx_amitrip(data.follow_treat1_dur_cont>=120) = 0;
 data.tx_nortrip = data.follow_treat_1_rx_prev___nortrip;
@@ -87,14 +93,19 @@ data.tx_othNut(data.follow_treat1_dur_cont>=120) = 0;
 
 data.prev_catFull = data.prev_cat;
 data.prev_catFull(data.follow_treat_cat1___rx_prev==1 & data.prev_cat==1) = 2;
-data.prev_catFull(data.follow_treat_cat1___rx_prev==1 & data.follow_treat_cat1___nut_prev==1) = 3;
+data.prev_catFull(data.follow_treat_cat1___rx_prev==1 & data.follow_treat_cat1___nut_prev==1 & data.prev_cat==1) = 3;
 data.prev_catFull2 = categorical(data.prev_catFull,[0 1 2 3],{'no_prev','nutr','rx','both'});
 
 data.num_prev = sum([data.tx_amitrip data.tx_nortrip data.tx_cypro data.tx_metopro data.tx_propano data.tx_topa data.tx_gaba data.tx_vpa data.tx_zonis data.tx_sertra data.tx_othRx ...
     data.tx_b2 data.tx_vitD data.tx_CoQ10 data.tx_mag data.tx_melatonin data.tx_othRx],2);
 
-numRx_DisFreq = length(data.age(data.prev_cat==1 & (data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1)));
-numNoRx_DisFreq = length(data.age(data.prev_cat==0 & (data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1)));
+data.num_prevRx = sum([data.tx_amitrip data.tx_nortrip data.tx_cypro data.tx_metopro data.tx_propano data.tx_topa data.tx_gaba data.tx_vpa data.tx_zonis data.tx_sertra data.tx_othRx],2);
+data.num_prevNut = sum([data.tx_b2 data.tx_vitD data.tx_CoQ10 data.tx_mag data.tx_melatonin data.tx_othRx],2);
+
+data.DisFreq = zeros(height(data),1);
+data.DisFreq(data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1) = 1;
+
+
 %% Compare initial factors that were associated with being prescribed a preventive medication, and follow up
 
 % Univariate analyses for those with missing data: 
@@ -115,22 +126,43 @@ data.concuss_number(isnan(data.concuss_number)) = 0;
 data.concuss_number(data.concuss___general_unclear==1) = NaN;
 
 mdl_fu_age = fitglm(data,'fu ~ age','Distribution','binomial');
+tbl_fu_age = lmfitBi_tbl(mdl_fu_age);
 mdl_fu_sex = fitglm(data,'fu ~ gender','Distribution','binomial');
+tbl_fu_sex = lmfitBi_tbl(mdl_fu_sex);
 mdl_fu_race = fitglm(data,'fu ~ race','Distribution','binomial');
+tbl_fu_race = lmfitBi_tbl(mdl_fu_race);
 mdl_fu_ethnicity = fitglm(data,'fu ~ ethnicity','Distribution','binomial');
+tbl_fu_ethnicity = lmfitBi_tbl(mdl_fu_ethnicity);
 mdl_fu_severity = fitglm(data,'fu ~ severity_grade','Distribution','binomial');
+tbl_fu_severity = lmfitBi_tbl(mdl_fu_severity);
 mdl_fu_frequency = fitglm(data,'fu ~ freq_bad','Distribution','binomial');
+tbl_fu_frequency = lmfitBi_tbl(mdl_fu_frequency);
 mdl_fu_disability = fitglm(data,'fu ~ pedmidas_grade','Distribution','binomial');
+tbl_fu_disability = lmfitBi_tbl(mdl_fu_disability);
 mdl_fu_conc = fitglm(data,'fu ~ concuss_number','Distribution','binomial');
+tbl_fu_conc = lmfitBi_tbl(mdl_fu_conc);
 mdl_fu_prev = fitglm(data,'fu ~ prev_cat','Distribution','binomial');
+tbl_fu_prev = lmfitBi_tbl(mdl_fu_prev);
 mdl_fu_cont = fitglm(data,'fu ~ ha_cont','Distribution','binomial');
+tbl_fu_cont = lmfitBi_tbl(mdl_fu_cont);
 mdl_fu_dayspost = fitglm(data,'fu ~ days_post_visit1','Distribution','binomial');
+tbl_fu_dayspost = lmfitBi_tbl(mdl_fu_dayspost);
 mdl_fu_concspec = fitglm(data,'fu ~ p_prov_seen___conc','Distribution','binomial');
-mdl_fu_depress = fitglm(data,'fu ~ depression___general_prior','Distribution','binomial');
-mdl_fu_anxiety = fitglm(data,'fu ~ anxiety___general_prior','Distribution','binomial');
+tbl_fu_concspec = lmfitBi_tbl(mdl_fu_concspec);
 mdl_fu_haprog = fitglm(data,'fu ~ ha_program','Distribution','binomial');
+tbl_fu_haprog = lmfitBi_tbl(mdl_fu_haprog);
 mdl_fu_migraine = fitglm(data,'fu ~ mig_pheno','Distribution','binomial');
+tbl_fu_migraine = lmfitBi_tbl(mdl_fu_migraine);
 mdl_fu_priorHA = fitglm(data,'fu ~ prior_ha','Distribution','binomial');
+tbl_fu_priorHA = lmfitBi_tbl(mdl_fu_priorHA);
+mdl_fu_moh = fitglm(data,'fu ~ med_overuse','Distribution','binomial');
+tbl_fu_moh = lmfitBi_tbl(mdl_fu_moh);
+
+mdl_fu_full = fitglm(data,'fu ~ age + prev_cat2 + concuss_number + mig_pheno','Distribution','binomial');
+tbl_fu_full = lmfitBi_tbl(mdl_fu_full);
+
+mdl_fu_final = fitglm(data,'fu ~ prev_cat2 + concuss_number + mig_pheno','Distribution','binomial');
+tbl_fu_final = lmfitBi_tbl(mdl_fu_final);
 
 % Covariates for preventive prescription and outcome
 % - Comorbid anxiety and depression
@@ -150,187 +182,66 @@ mdl_fu_priorHA = fitglm(data,'fu ~ prior_ha','Distribution','binomial');
 
 %% preventive analysis
 
-% univariate
-mdl_prev_age = fitglm(data,'prev_cat ~ age','Distribution','binomial');
-tbl_prev_age = brm_tbl_plot(mdl_prev_age);
-mdl_prev_sex = fitglm(data,'prev_cat ~ gender','Distribution','binomial');
-tbl_prev_sex = brm_tbl_plot(mdl_prev_sex);
-mdl_prev_race = fitglm(data,'prev_cat ~ race','Distribution','binomial');
-tbl_prev_race = brm_tbl_plot(mdl_prev_race);
-mdl_prev_ethnicity = fitglm(data,'prev_cat ~ ethnicity','Distribution','binomial');
-tbl_prev_ethnicity = brm_tbl_plot(mdl_prev_ethnicity);
-mdl_prev_severity = fitglm(data,'prev_cat ~ severity_grade','Distribution','binomial');
-tbl_prev_severity = brm_tbl_plot(mdl_prev_severity);
-mdl_prev_frequency = fitglm(data,'prev_cat ~ freq_bad','Distribution','binomial');
-tbl_prev_frequency = brm_tbl_plot(mdl_prev_frequency);
-mdl_prev_disability = fitglm(data,'prev_cat ~ pedmidas_grade','Distribution','binomial');
-tbl_prev_disability = brm_tbl_plot(mdl_prev_disability);
-mdl_prev_conc = fitglm(data,'prev_cat ~ concuss_number','Distribution','binomial');
-tbl_prev_conc = brm_tbl_plot(mdl_prev_conc);
-mdl_prev_medoveruse = fitglm(data,'prev_cat ~ med_overuse','Distribution','binomial');
-tbl_prev_medoveruse = brm_tbl_plot(mdl_prev_medoveruse);
-mdl_prev_mig = fitglm(data,'prev_cat ~ mig_pheno','Distribution','binomial');
-tbl_prev_mig = brm_tbl_plot(mdl_prev_mig);
-mdl_prev_cont = fitglm(data,'prev_cat ~ ha_cont','Distribution','binomial');
-tbl_prev_cont = brm_tbl_plot(mdl_prev_cont);
-mdl_prev_haprog = fitglm(data,'prev_cat ~ ha_program','Distribution','binomial');
-tbl_prev_haprog = brm_tbl_plot(mdl_prev_haprog);
-mdl_prev_dayspost1 = fitglm(data,'prev_cat ~ days_post_visit1','Distribution','binomial');
-tbl_prev_dayspost1 = brm_tbl_plot(mdl_prev_dayspost1);
-mdl_prev_concspec = fitglm(data,'prev_cat ~ p_prov_seen___conc','Distribution','binomial');
-tbl_prev_concspec = brm_tbl_plot(mdl_prev_concspec);
-mdl_prev_depress = fitglm(data,'prev_cat ~ depression___general_prior','Distribution','binomial');
-tbl_prev_depress = brm_tbl_plot(mdl_prev_depress);
-mdl_prev_anxiety = fitglm(data,'prev_cat ~ anxiety___general_prior','Distribution','binomial');
-tbl_prev_anxiety = brm_tbl_plot(mdl_prev_anxiety);
-mdl_prev_priorHA = fitglm(data,'prev_cat ~ prior_ha','Distribution','binomial');
-tbl_prev_priorHA = brm_tbl_plot(mdl_prev_priorHA);
+data.severity_gradeMin = data.severity_grade;
+data.severity_gradeMin(isnan(data.severity_gradeMin)) = min(data.severity_grade);
+data.severity_gradeMax = data.severity_grade;
+data.severity_gradeMax(isnan(data.severity_gradeMax)) = max(data.severity_grade);
 
-mdl_prev_full = fitglm(data,'prev_cat ~ gender + freq_bad + pedmidas_grade + ha_cont + days_post_visit1','Distribution','binomial');
-tbl_prev_full = brm_tbl_plot(mdl_prev_full);
+data.freq_badMin = data.freq_bad;
+data.freq_badMin(isnan(data.freq_badMin)) = min(data.freq_bad);
+data.freq_badMax = data.freq_bad;
+data.freq_badMax(isnan(data.freq_badMax)) = max(data.freq_bad);
 
-mdl_prev_final = fitglm(data,'prev_cat ~ freq_bad + ha_cont + days_post_visit1','Distribution','binomial');
-tbl_prev_final = brm_tbl_plot(mdl_prev_final);
+% for who was prescribed a preventive
+
+[p_presAge,tbl_presAge,stats_presAge] = kruskalwallis(data.age,data.prev_cat2);
+[tbl_presSex,chi2_presSex,p_presSex] = crosstab(data.gender,data.prev_cat2);
+[tbl_presRace,chi2_presRace,p_presRace] = crosstab(data.race,data.prev_cat2);
+[tbl_presEth,chi2_presEth,p_presEth] = crosstab(data.ethnicity,data.prev_cat2);
+[p_presDis,tbl_presDis,stats_presDis] = kruskalwallis(data.pedmidas_grade,data.prev_cat2);
+[p_presSev,tbl_presSev,stats_presSev] = kruskalwallis(data.severity_grade,data.prev_cat2);
+[p_presSevMin,tbl_presSevMin,stats_presSevMin] = kruskalwallis(data.severity_gradeMin,data.prev_cat2);
+[p_presSevMax,tbl_presSevMax,stats_presSevMax] = kruskalwallis(data.severity_gradeMax,data.prev_cat2);
+[p_presFreq,tbl_presFreq,stats_presFreq] = kruskalwallis(data.freq_bad,data.prev_cat2);
+[p_presFreqMin,tbl_presFreqMin,stats_presFreqMin] = kruskalwallis(data.freq_badMin,data.prev_cat2);
+[p_presFreqMax,tbl_presFreqMax,stats_presFreqMax] = kruskalwallis(data.freq_badMax,data.prev_cat2);
+[tbl_presCont,chi2_presCont,p_presCont] = crosstab(data.ha_cont,data.prev_cat2);
+[tbl_presMOH,chi2_presMOH,p_presMOH] = crosstab(data.med_overuse,data.prev_cat2);
+[tbl_presMig,chi2_presMig,p_presMig] = crosstab(data.mig_pheno,data.prev_cat2);
+[tbl_presHAprog,chi2_presHAprog,p_presHAprog] = crosstab(data.ha_program,data.prev_cat2);
+[tbl_presConcProg,chi2_presConcProg,p_presConcProg] = crosstab(data.p_prov_seen___conc,data.prev_cat2);
+[p_presConcNum,tbl_presConcNum,stats_presConcNum] = kruskalwallis(data.concuss_number,data.prev_cat2);
+[p_presDaysPost,tbl_presDaysPost,stats_presDaysPost] = kruskalwallis(data.days_post_visit1,data.prev_cat2);
+[tbl_presPriorHA,chi2_presPriorHA,p_presPriorHA,] = crosstab(data.prior_ha,data.prev_cat2);
 
 
-% sensitivity analysis for Rx vs. nutraceutical
-dataRxN = data(data.prev_catFull2=='nutr'|data.prev_catFull2=='rx',:);
-dataRxN.prev_catFull = dataRxN.prev_catFull-1;
-mdl_RxN_age = fitglm(dataRxN,'prev_catFull ~ age','Distribution','binomial');
-mdl_RxN_sex = fitglm(dataRxN,'prev_catFull ~ gender','Distribution','binomial');
-mdl_RxN_race = fitglm(dataRxN,'prev_catFull ~ race','Distribution','binomial');
-mdl_RxN_ethnicity = fitglm(dataRxN,'prev_catFull ~ ethnicity','Distribution','binomial');
-mdl_RxN_severity = fitglm(dataRxN,'prev_catFull ~ severity_grade','Distribution','binomial');
-mdl_RxN_frequency = fitglm(dataRxN,'prev_catFull ~ freq_bad','Distribution','binomial');
-mdl_RxN_disability = fitglm(dataRxN,'prev_catFull ~ pedmidas_grade','Distribution','binomial');
-mdl_RxN_conc = fitglm(dataRxN,'prev_catFull ~ concuss_number','Distribution','binomial');
-mdl_RxN_medoveruse = fitglm(dataRxN,'prev_catFull ~ med_overuse','Distribution','binomial');
-mdl_RxN_mig = fitglm(dataRxN,'prev_catFull ~ mig_pheno','Distribution','binomial');
-mdl_RxN_cont = fitglm(dataRxN,'prev_catFull ~ ha_cont','Distribution','binomial');
-mdl_RxN_haprog = fitglm(dataRxN,'prev_catFull ~ ha_program','Distribution','binomial');
-mdl_RxN_dayspost1 = fitglm(dataRxN,'prev_catFull ~ days_post_visit1','Distribution','binomial');
-mdl_RxN_concspec = fitglm(dataRxN,'prev_catFull ~ p_prov_seen___conc','Distribution','binomial');
-mdl_RxN_depress = fitglm(dataRxN,'prev_catFull ~ depression___general_prior','Distribution','binomial');
-mdl_RxN_anxiety = fitglm(dataRxN,'prev_catFull ~ anxiety___general_prior','Distribution','binomial');
-mdl_RxN_priorHA = fitglm(dataRxN,'prev_catFull ~ prior_ha','Distribution','binomial');
-mdl_RxN_fu = fitglm(dataRxN,'fu ~ prev_catFull','Distribution','binomial');
 
 %% Outcome analysis
 
-% Follow up at 6 weeks
+% Follow up
+data.follow_ben = reordercats(data.follow_ben,{'wor','non_ben','som_ben','sig_ben'});
 data.fu_outcome = NaN*ones(height(data),1);
-data.fu_outcome(data.follow_ben=='wor') = 1;
-data.fu_outcome(data.follow_ben=='non_ben') = 2;
-data.fu_outcome(data.follow_ben=='som_ben') = 3;
-data.fu_outcome(data.follow_ben=='sig_ben') = 4;
+data.fu_outcome(data.follow_ben=='wor') = -1;
+data.fu_outcome(data.follow_ben=='non_ben') = 0;
+data.fu_outcome(data.follow_ben=='som_ben') = 1;
+data.fu_outcome(data.follow_ben=='sig_ben') = 2;
 
-% Set missing values to all be worse or all be significant benefit
-data.fu_outcomeReplace1 = data.fu_outcome;
-data.fu_outcomeReplace1(isnan(data.fu_outcome)) = 1;
+[p,tbl,stats] = kruskalwallis(data.fu_outcome,data.prev_cat2);
 
-data.fu_outcomeReplace4 = data.fu_outcome;
-data.fu_outcomeReplace4(isnan(data.fu_outcome)) = 4;
+%% compare complete and incomplete data
 
-% univariable
-switch Bounds
-    case 1
-        data.fu_outcome(isnan(data.fu_outcome)) = 1;
-    case 2
-        data.fu_outcome(isnan(data.fu_outcome)) = 4;
-end
-
-mdl_OutcomeSex = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ gender',ModelType="ordinal",CategoricalPredictors="gender");
-tbl_OutcomeSex = mnrfit_tbl(mdl_OutcomeSex);
-mdl_OutcomeAge = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ age',ModelType="ordinal");
-tbl_OutcomeAge = mnrfit_tbl(mdl_OutcomeAge);
-mdl_OutcomeRace = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ race',ModelType="ordinal",CategoricalPredictors="race");
-tbl_OutcomeRace = mnrfit_tbl(mdl_OutcomeRace);
-mdl_OutcomeEth = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ ethnicity',ModelType="ordinal",CategoricalPredictors="ethnicity");
-tbl_OutcomeEth = mnrfit_tbl(mdl_OutcomeEth);
-mdl_OutcomeConcn = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ concuss_number',ModelType="ordinal");
-tbl_OutcomeConcn = mnrfit_tbl(mdl_OutcomeConcn);
-mdl_OutcomeDep = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ depression___general_prior',ModelType="ordinal",CategoricalPredictors="depression___general_prior");
-tbl_OutcomeDep = mnrfit_tbl(mdl_OutcomeDep);
-mdl_OutcomeAnx = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ anxiety___general_prior',ModelType="ordinal",CategoricalPredictors="anxiety___general_prior");
-tbl_OutcomeAnx = mnrfit_tbl(mdl_OutcomeAnx);
-mdl_OutcomePrHA = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ prior_ha',ModelType="ordinal",CategoricalPredictors="prior_ha");
-tbl_OutcomePrHA = mnrfit_tbl(mdl_OutcomePrHA);
-mdl_OutcomeDP1 = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ days_post_visit1',ModelType="ordinal");
-tbl_OutcomeDP1 = mnrfit_tbl(mdl_OutcomeDP1);
-mdl_OutcomeDP2 = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ days_post_visit2',ModelType="ordinal");
-tbl_OutcomeDP2 = mnrfit_tbl(mdl_OutcomeDP2);
-mdl_OutcomeDis = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ pedmidas_grade',ModelType="ordinal");
-tbl_OutcomeDis = mnrfit_tbl(mdl_OutcomeDis);
-mdl_OutcomeSev = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ severity_grade',ModelType="ordinal");
-tbl_OutcomeSev = mnrfit_tbl(mdl_OutcomeSev);
-mdl_OutcomeFreq = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ freq_bad',ModelType="ordinal");
-tbl_OutcomeFreq = mnrfit_tbl(mdl_OutcomeFreq);
-mdl_OutcomeContHA = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ ha_cont',ModelType="ordinal",CategoricalPredictors="ha_cont");
-tbl_OutcomeContHA = mnrfit_tbl(mdl_OutcomeContHA);
-mdl_OutcomeMig = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ mig_pheno',ModelType="ordinal",CategoricalPredictors="mig_pheno");
-tbl_OutcomeMig = mnrfit_tbl(mdl_OutcomeMig);
-mdl_OutcomeMOH = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ med_overuse',ModelType="ordinal",CategoricalPredictors="med_overuse");
-tbl_OutcomeMOH = mnrfit_tbl(mdl_OutcomeDP1);
-mdl_OutcomeConcSpec = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ p_prov_seen___conc',ModelType="ordinal",CategoricalPredictors="p_prov_seen___conc");
-tbl_OutcomeConcSpec = mnrfit_tbl(mdl_OutcomeConcSpec);
-mdl_OutcomeHAprog = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ ha_program',ModelType="ordinal",CategoricalPredictors="ha_program");
-tbl_OutcomeHAprog = mnrfit_tbl(mdl_OutcomeHAprog);
-mdl_OutcomePrev = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ prev_cat',ModelType="ordinal",CategoricalPredictors="prev_cat");
-tbl_OutcomePrev = mnrfit_tbl(mdl_OutcomePrev);
-
-
-mdl_OutcomeFull = fitmnr(data(data.fu_outcome>0,:),'fu_outcome ~ prev_cat + age + ethnicity + gender + days_post_visit1 + pedmidas_grade + freq_bad + ha_cont',...
-    ModelType="ordinal",CategoricalPredictors=["prev_cat" "gender" "ethnicity" "ha_cont"]);
-tbl_OutcomeFull = mnrfit_tbl(mdl_OutcomeFull);
-% no variables maintained significance in the final model
-
-% % univariable sensitivity analysis (Rx vs. Nutraceutical)
-mdl_oRxSex = fitmnr(dataRxN,'fu_outcome ~ gender',ModelType="ordinal",CategoricalPredictors="gender");
-tbl_oRxSex = mnrfit_tbl(mdl_oRxSex);
-mdl_oRxAge = fitmnr(dataRxN,'fu_outcome ~ age',ModelType="ordinal");
-tbl_oRxAge = mnrfit_tbl(mdl_oRxAge);
-mdl_oRxRace = fitmnr(dataRxN,'fu_outcome ~ race',ModelType="ordinal",CategoricalPredictors="race");
-tbl_oRxRace = mnrfit_tbl(mdl_oRxRace);
-mdl_oRxEth = fitmnr(dataRxN,'fu_outcome ~ ethnicity',ModelType="ordinal",CategoricalPredictors="ethnicity");
-tbl_oRxEth = mnrfit_tbl(mdl_oRxEth);
-mdl_oRxConcn = fitmnr(dataRxN,'fu_outcome ~ concuss_number',ModelType="ordinal");
-tbl_oRxConcn = mnrfit_tbl(mdl_oRxConcn);
-mdl_oRxDep = fitmnr(dataRxN,'fu_outcome ~ depression___general_prior',ModelType="ordinal",CategoricalPredictors="depression___general_prior");
-tbl_oRxDep = mnrfit_tbl(mdl_oRxDep);
-mdl_oRxAnx = fitmnr(dataRxN,'fu_outcome ~ anxiety___general_prior',ModelType="ordinal",CategoricalPredictors="anxiety___general_prior");
-tbl_oRxAnx = mnrfit_tbl(mdl_oRxAnx);
-mdl_oRxPrHA = fitmnr(dataRxN,'fu_outcome ~ prior_ha',ModelType="ordinal",CategoricalPredictors="prior_ha");
-tbl_oRxPrHA = mnrfit_tbl(mdl_oRxPrHA);
-mdl_oRxDP1 = fitmnr(dataRxN,'fu_outcome ~ days_post_visit1',ModelType="ordinal");
-tbl_oRxDP1 = mnrfit_tbl(mdl_oRxDP1);
-mdl_oRxDP2 = fitmnr(dataRxN,'fu_outcome ~ days_post_visit2',ModelType="ordinal");
-tbl_oRxDP2 = mnrfit_tbl(mdl_oRxDP2);
-mdl_oRxDis = fitmnr(dataRxN,'fu_outcome ~ pedmidas_grade',ModelType="ordinal");
-tbl_oRxDis = mnrfit_tbl(mdl_oRxDis);
-mdl_oRxSev = fitmnr(dataRxN,'fu_outcome ~ severity_grade',ModelType="ordinal");
-tbl_oRxSev = mnrfit_tbl(mdl_oRxSev);
-mdl_oRxFreq = fitmnr(dataRxN,'fu_outcome ~ freq_bad',ModelType="ordinal");
-tbl_oRxFreq = mnrfit_tbl(mdl_oRxFreq);
-mdl_oRxContHA = fitmnr(dataRxN,'fu_outcome ~ ha_cont',ModelType="ordinal",CategoricalPredictors="ha_cont");
-tbl_oRxContHA = mnrfit_tbl(mdl_oRxContHA);
-mdl_oRxMig = fitmnr(dataRxN,'fu_outcome ~ mig_pheno',ModelType="ordinal",CategoricalPredictors="mig_pheno");
-tbl_oRxMig = mnrfit_tbl(mdl_oRxMig);
-mdl_oRxMOH = fitmnr(dataRxN,'fu_outcome ~ med_overuse',ModelType="ordinal",CategoricalPredictors="med_overuse");
-tbl_oRxMOH = mnrfit_tbl(mdl_oRxMOH);
-mdl_oRxConcSpec = fitmnr(dataRxN,'fu_outcome ~ p_prov_seen___conc',ModelType="ordinal",CategoricalPredictors="p_prov_seen___conc");
-tbl_oRxConcSpec = mnrfit_tbl(mdl_OutcomeConcSpec);
-mdl_oRxHAprog = fitmnr(dataRxN,'fu_outcome ~ ha_program',ModelType="ordinal",CategoricalPredictors="ha_program");
-tbl_oRxHAprog = mnrfit_tbl(mdl_oRxHAprog);
-mdl_oRxRxN = fitmnr(dataRxN,'fu_outcome ~ prev_catFull',ModelType="ordinal",CategoricalPredictors="prev_catFull");
-tbl_oRxRxN = mnrfit_tbl(mdl_oRxRxN);
-
-
-mdl_oRxFull = fitmnr(dataRxN,'fu_outcome ~ prev_catFull + age + gender + concuss_number + freq_bad + pedmidas_grade + severity_grade + med_overuse + ha_program + p_prov_seen___conc',ModelType="ordinal",...
-    CategoricalPredictors=["prev_catFull" "gender" "pedmidas_grade" "severity_grade" "med_overuse" "ha_program" "p_prov_seen___conc"]);
-tbl_oRxFull = mnrfit_tbl(mdl_oRxFull);
-
-mdl_oRxFinal = fitmnr(dataRxN,'fu_outcome ~ prev_catFull + gender + concuss_number + pedmidas_grade',ModelType="ordinal",...
-    CategoricalPredictors=["prev_catFull" "gender" "pedmidas_grade"]);
-tbl_oRxFinal = mnrfit_tbl(mdl_oRxFinal);
-% pedmidas affected Rx vs. nutraceutical relationship with outcome >15%
-
+data.comp = zeros(height(data),1);
+data.comp(~isundefined(data.follow_ben)) = 1;
+[p_compAge,tbl_compAge,stats_compAge] = kruskalwallis(data.age,data.comp);
+[tbl_compSex,chi2_compSex,p_compSex] = crosstab(data.gender,data.comp);
+[tbl_compRace,chi2_compRace,p_compRace] = crosstab(data.race,data.comp);
+[tbl_compEth,chi2_compEth,p_compEth] = crosstab(data.ethnicity,data.comp);
+[p_compDaysPost,tbl_compDaysPost,stats_compDaysPost] = kruskalwallis(data.days_post_visit1,data.comp);
+[tbl_compHAprog,chi2_compHAprog,p_compHAprog] = crosstab(data.ha_program,data.comp);
+[tbl_compPrev,chi2_compPrev,p_compPrev] = crosstab(data.prev_cat2,data.comp);
+[tbl_compCont,chi2_compCont,p_compCont] = crosstab(data.ha_cont,data.comp);
+[tbl_compMOH,chi2_compMOH,p_compMOH] = crosstab(data.med_overuse,data.comp);
+[tbl_compMig,chi2_compMig,p_compMig] = crosstab(data.mig_pheno,data.comp);
+[p_compDis,tbl_compDis,stats_compDis] = kruskalwallis(data.pedmidas_grade,data.comp);
+[p_compSev,tbl_compSev,stats_compSev] = kruskalwallis(data.severity_grade,data.comp);
+[p_compFreq,tbl_compFreq,stats_compFreq] = kruskalwallis(data.freq_bad,data.comp);
