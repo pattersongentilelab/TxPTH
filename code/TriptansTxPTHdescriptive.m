@@ -129,7 +129,6 @@ data.acuteChronic = categorical(data.acuteChronic,[0 1],{'acute','chronic'});
 [tbl_presSex,chi2_presSex,p_presSex] = crosstab(data.gender,data.trip_cat);
 [tbl_presRace,chi2_presRace,p_presRace] = crosstab(data.race,data.trip_cat);
 [tbl_presEth,chi2_presEth,p_presEth] = crosstab(data.ethnicity,data.trip_cat);
-[tbl_presCont,chi2_presCont,p_presCont] = crosstab(data.ha_cont,data.trip_cat);
 [tbl_presMOH,chi2_presMOH,p_presMOH] = crosstab(data.med_overuse,data.trip_cat);
 [tbl_presMig,chi2_presMig,p_presMig] = crosstab(data.mig_pheno,data.trip_cat);
 [tbl_presHAprog,chi2_presHAprog,p_presHAprog] = crosstab(data.ha_program,data.trip_cat);
@@ -150,7 +149,7 @@ for x = 1:height(data_trp)
 end
 data_no_trp = data(data.trip_cat==0,:);
 data_trp.trp1_response = NaN*ones(height(data_trp),1);
-data_trp.trp1_response(data_trp.response_triptan1___worse_resp==1) = -1;
+data_trp.trp1_response(data_trp.response_triptan1___worse_resp==1) = 0;
 data_trp.trp1_response(data_trp.response_triptan1___no_resp==1) = 0;
 data_trp.trp1_response(data_trp.response_triptan1___partial_resp==1) = 1;
 data_trp.trp1_response(data_trp.response_triptan1___full_resp==1) = 2;
@@ -164,27 +163,44 @@ data_trp.trp3_response = NaN*ones(height(data_trp),1);
 data_trp.trp3_response(data_trp.response_triptan3___no_resp==1) = 0;
 data_trp.trp3_response(data_trp.response_triptan3___partial_resp==1) = 1;
 
-data_trp.trp1_responseV2 = data_trp.trp1_response;
-data_trp.trp1_responseV2(data_trp.trp1_responseV2==-1) = 0;
-
 data_trp.nsaid_dopa = zeros(height(data_trp),1);
 data_trp.nsaid_dopa(data_trp.freq_reg_abort_meds_v2___nsaid==1) = 1;
 data_trp.nsaid_dopa(data_trp.freq_reg_abort_meds_v2___dopa==1) = 1;
 
 % efficacy vs. covariates
 data_trp.outcome = zeros(height(data_trp),1);
-data_trp.outcome(~isnan(data_trp.trp1_responseV2)) = 1;
+data_trp.outcome(~isnan(data_trp.trp1_response)) = 1;
 data_trp_comp = data_trp;
-data_trp = data_trp(data_trp.outcome==1,:);
 
-[rho_respDaysPost,p_respDaysPost] = corr(data_trp.days_post_trp1,data_trp.trp1_responseV2);
-[p_respCont,tbl_respCont,stats_respCont] = kruskalwallis(data_trp.trp1_responseV2,data_trp.ha_cont);
-[rho_respPriorMed,p_respPriorMed] = corr(data_trp.num_prior_meds,data_trp.trp1_responseV2);
-[p_respMOH,tbl_respMOH,stats_respMOH] = kruskalwallis(data_trp.trp1_responseV2,data_trp.med_overuse);
-[p_respCombo,tbl_respCombo,stats_respCombo] = kruskalwallis(data_trp.trp1_responseV2,data_trp.nsaid_dopa);
+data_trp.trp1_responseMin = data_trp.trp1_response;
+data_trp.trp1_responseMin(isnan(data_trp.trp1_responseMin)) = 0;
+data_trp.trp1_responseMax = data_trp.trp1_response;
+data_trp.trp1_responseMax(isnan(data_trp.trp1_responseMax)) = 2;
+
+data_trp.acuteChronic_trp1 = 2*ones(height(data_trp),1);
+data_trp.acuteChronic_trp1(data_trp.days_post_trp1<30) = 0;
+data_trp.acuteChronic_trp1(data_trp.days_post_trp1>=30 & data_trp.days_post_trp1<90) = 1;
+data_trp.acuteChronic_trp1 = categorical(data_trp.acuteChronic_trp1,[0 1 2],{'hyperacute','acute','chronic'});
+
+data_trp.acuteChronic_trp1Simp = mergecats(data_trp.acuteChronic_trp1,{'acute','hyperacute'});
+
+[rho_respPriorMed,p_respPriorMed] = corr(data_trp.num_prior_meds(data_trp.outcome==1),data_trp.trp1_response(data_trp.outcome==1));
+[rho_respPriorMedmin,p_respPriorMedmin] = corr(data_trp.num_prior_meds,data_trp.trp1_responseMin);
+[rho_respPriorMedmax,p_respPriorMedmax] = corr(data_trp.num_prior_meds,data_trp.trp1_responseMax);
+
+[p_respAC,tbl_respAC,stats_respAC] = kruskalwallis(data_trp.trp1_response(data_trp.outcome==1),data_trp.acuteChronic(data_trp.outcome==1));
+[p_respACmin,tbl_respACmin,stats_respACmin] = kruskalwallis(data_trp.trp1_responseMin,data_trp.acuteChronic);
+[p_respACmax,tbl_respACmax,stats_respACmax] = kruskalwallis(data_trp.trp1_responseMax,data_trp.acuteChronic);
+
+[p_respCombo,tbl_respCombo,stats_respCombo] = kruskalwallis(data_trp.trp1_response(data_trp.outcome==1),data_trp.nsaid_dopa(data_trp.outcome==1));
+[p_respCombomin,tbl_respCombomin,stats_respCombomin] = kruskalwallis(data_trp.trp1_responseMin,data_trp.nsaid_dopa);
+[p_respCombomax,tbl_respCombomax,stats_respCombomax] = kruskalwallis(data_trp.trp1_responseMax,data_trp.nsaid_dopa);
 
 
 %% Side effects
+data_trp.worseHA = zeros(height(data_trp),1);
+data_trp.worseHA(data_trp.response_triptan1___worse_resp==1) = 1;
+
 data_trp.trp_se = NaN*ones(height(data_trp),1);
 data_trp.trp_se(data_trp.triptan_se_v2___none==1) = 1;
 data_trp.trp_se(data_trp.other_sx_trp_v2___none_noted==1) = 2;
@@ -193,8 +209,13 @@ data_trp.trp_se(data_trp.triptan_se_v2___numbting==1) = 4;
 data_trp.trp_se(data_trp.triptan_se_v2___nausea==1) = 5;
 data_trp.trp_se(data_trp.triptan_se_v2___tired==1) = 6;
 data_trp.trp_se(data_trp.triptan_se_v2___dizz==1) = 7;
-data_trp.trp_se(data_trp.triptan_se_v2___oth==1) = 8;
-data_trp.trp_se(sum([data_trp.triptan_se_v2___chestpain data_trp.triptan_se_v2___numbting data_trp.triptan_se_v2___nausea data_trp.triptan_se_v2___tired data_trp.triptan_se_v2___dizz data_trp.triptan_se_v2___oth],2)>1) = 9;
+data_trp.trp_se(data_trp.worseHA==1) = 8;
+data_trp.trp_se(data_trp.triptan_se_v2___oth==1) = 9;
+data_trp.trp_se(sum([data_trp.triptan_se_v2___chestpain data_trp.triptan_se_v2___numbting data_trp.triptan_se_v2___nausea data_trp.triptan_se_v2___tired data_trp.triptan_se_v2___dizz data_trp.triptan_se_v2___oth data_trp.worseHA],2)>1) = 10;
 
-data_trp.trp_se = categorical(data_trp.trp_se,1:9,{'none','none_noted','chest_pain','numbness','nausea','tired','dizziness','other','multiple'});
+data_trp.trp_se = categorical(data_trp.trp_se,1:10,{'none','none_noted','chest_pain','numbness','nausea','tired','dizziness','worse HA','other','multiple'});
+data_trp.se_yn = zeros(height(data_trp),1);
+data_trp.se_yn(data_trp.triptan_se_v2___chestpain==1|data_trp.triptan_se_v2___numbting==1|data_trp.triptan_se_v2___nausea==1|data_trp.triptan_se_v2___tired==1 ...
+    |data_trp.triptan_se_v2___dizz==1|data_trp.triptan_se_v2___oth==1|data_trp.worseHA==1) = 1;
 
+close all
