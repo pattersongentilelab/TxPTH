@@ -125,45 +125,6 @@ data.DisFreq(data.pedmidas_grade>=1 |data.freq_bad>4|data.ha_cont==1) = 1;
 data.concuss_number(isnan(data.concuss_number)) = 0;
 data.concuss_number(data.concuss___general_unclear==1) = NaN;
 
-mdl_fu_age = fitglm(data,'fu ~ age','Distribution','binomial');
-tbl_fu_age = lmfitBi_tbl(mdl_fu_age);
-mdl_fu_sex = fitglm(data,'fu ~ gender','Distribution','binomial');
-tbl_fu_sex = lmfitBi_tbl(mdl_fu_sex);
-mdl_fu_race = fitglm(data,'fu ~ race','Distribution','binomial');
-tbl_fu_race = lmfitBi_tbl(mdl_fu_race);
-mdl_fu_ethnicity = fitglm(data,'fu ~ ethnicity','Distribution','binomial');
-tbl_fu_ethnicity = lmfitBi_tbl(mdl_fu_ethnicity);
-mdl_fu_severity = fitglm(data,'fu ~ severity_grade','Distribution','binomial');
-tbl_fu_severity = lmfitBi_tbl(mdl_fu_severity);
-mdl_fu_frequency = fitglm(data,'fu ~ freq_bad','Distribution','binomial');
-tbl_fu_frequency = lmfitBi_tbl(mdl_fu_frequency);
-mdl_fu_disability = fitglm(data,'fu ~ pedmidas_grade','Distribution','binomial');
-tbl_fu_disability = lmfitBi_tbl(mdl_fu_disability);
-mdl_fu_conc = fitglm(data,'fu ~ concuss_number','Distribution','binomial');
-tbl_fu_conc = lmfitBi_tbl(mdl_fu_conc);
-mdl_fu_prev = fitglm(data,'fu ~ prev_cat','Distribution','binomial');
-tbl_fu_prev = lmfitBi_tbl(mdl_fu_prev);
-mdl_fu_cont = fitglm(data,'fu ~ ha_cont','Distribution','binomial');
-tbl_fu_cont = lmfitBi_tbl(mdl_fu_cont);
-mdl_fu_dayspost = fitglm(data,'fu ~ days_post_visit1','Distribution','binomial');
-tbl_fu_dayspost = lmfitBi_tbl(mdl_fu_dayspost);
-mdl_fu_concspec = fitglm(data,'fu ~ p_prov_seen___conc','Distribution','binomial');
-tbl_fu_concspec = lmfitBi_tbl(mdl_fu_concspec);
-mdl_fu_haprog = fitglm(data,'fu ~ ha_program','Distribution','binomial');
-tbl_fu_haprog = lmfitBi_tbl(mdl_fu_haprog);
-mdl_fu_migraine = fitglm(data,'fu ~ mig_pheno','Distribution','binomial');
-tbl_fu_migraine = lmfitBi_tbl(mdl_fu_migraine);
-mdl_fu_priorHA = fitglm(data,'fu ~ prior_ha','Distribution','binomial');
-tbl_fu_priorHA = lmfitBi_tbl(mdl_fu_priorHA);
-mdl_fu_moh = fitglm(data,'fu ~ med_overuse','Distribution','binomial');
-tbl_fu_moh = lmfitBi_tbl(mdl_fu_moh);
-
-mdl_fu_full = fitglm(data,'fu ~ age + prev_cat2 + concuss_number + mig_pheno','Distribution','binomial');
-tbl_fu_full = lmfitBi_tbl(mdl_fu_full);
-
-mdl_fu_final = fitglm(data,'fu ~ prev_cat2 + concuss_number + mig_pheno','Distribution','binomial');
-tbl_fu_final = lmfitBi_tbl(mdl_fu_final);
-
 % Covariates for preventive prescription and outcome
 % - Comorbid anxiety and depression
 % - Family history of migraine
@@ -202,6 +163,7 @@ data.freq_badMax(isnan(data.freq_badMax)) = max(data.freq_bad);
 [p_presSev,tbl_presSev,stats_presSev] = kruskalwallis(data.severity_grade,data.prev_cat2);
 [p_presSevMin,tbl_presSevMin,stats_presSevMin] = kruskalwallis(data.severity_gradeMin,data.prev_cat2);
 [p_presSevMax,tbl_presSevMax,stats_presSevMax] = kruskalwallis(data.severity_gradeMax,data.prev_cat2);
+[p_presFreqB,tbl_presFreqB,stats_presFreqB] = kruskalwallis(data.freq_bad,data.prev_cat2);
 [p_presFreq,tbl_presFreq,stats_presFreq] = kruskalwallis(data.freq_bad,data.prev_cat2);
 [p_presFreqMin,tbl_presFreqMin,stats_presFreqMin] = kruskalwallis(data.freq_badMin,data.prev_cat2);
 [p_presFreqMax,tbl_presFreqMax,stats_presFreqMax] = kruskalwallis(data.freq_badMax,data.prev_cat2);
@@ -245,3 +207,5 @@ data.comp(~isundefined(data.follow_ben)) = 1;
 [p_compDis,tbl_compDis,stats_compDis] = kruskalwallis(data.pedmidas_grade,data.comp);
 [p_compSev,tbl_compSev,stats_compSev] = kruskalwallis(data.severity_grade,data.comp);
 [p_compFreq,tbl_compFreq,stats_compFreq] = kruskalwallis(data.freq_bad,data.comp);
+
+close all

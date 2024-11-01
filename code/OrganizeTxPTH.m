@@ -27,6 +27,16 @@ data.freq_bad (data.p_fre_bad=='3wk') = 6;
 data.freq_bad (data.p_fre_bad=='daily') = 7;
 data.freq_bad (data.p_fre_bad=='always') = 8;
 
+data.freq = NaN*ones(height(data),1);
+data.freq (data.p_epi_fre=='never') = 1;
+data.freq (data.p_epi_fre=='1mo') = 2;
+data.freq (data.p_epi_fre=='1to3mo') = 3;
+data.freq (data.p_epi_fre=='1wk') = 4;
+data.freq (data.p_epi_fre=='2to3wk') = 5;
+data.freq (data.p_epi_fre=='3wk') = 6;
+data.freq (data.p_epi_fre=='daily') = 7;
+data.freq (data.p_current_ha_pattern=='cons_flare'|data.p_current_ha_pattern=='cons_same') = 8;
+
 data.severity_grade = NaN*ones(height(data),1);
 data.severity_grade(data.p_sev_overall=='mild') = 1;
 data.severity_grade(data.p_sev_overall=='mod') = 2;
