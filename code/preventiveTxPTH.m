@@ -149,9 +149,9 @@ data.severity_gradeMax = data.severity_grade;
 data.severity_gradeMax(isnan(data.severity_gradeMax)) = max(data.severity_grade);
 
 data.freq_badMin = data.freq_bad;
-data.freq_badMin(isnan(data.freq_badMin)) = min(data.freq_bad);
+data.freq_badMin(isnan(data.freq_badMin) & data.p_fre_bad~='oth') = min(data.freq_bad);
 data.freq_badMax = data.freq_bad;
-data.freq_badMax(isnan(data.freq_badMax)) = max(data.freq_bad);
+data.freq_badMax(isnan(data.freq_badMax) & data.p_fre_bad~='oth') = max(data.freq_bad);
 
 % for who was prescribed a preventive
 
@@ -164,9 +164,11 @@ data.freq_badMax(isnan(data.freq_badMax)) = max(data.freq_bad);
 [p_presSevMin,tbl_presSevMin,stats_presSevMin] = kruskalwallis(data.severity_gradeMin,data.prev_cat2);
 [p_presSevMax,tbl_presSevMax,stats_presSevMax] = kruskalwallis(data.severity_gradeMax,data.prev_cat2);
 [p_presFreqB,tbl_presFreqB,stats_presFreqB] = kruskalwallis(data.freq_bad,data.prev_cat2);
-[p_presFreq,tbl_presFreq,stats_presFreq] = kruskalwallis(data.freq_bad,data.prev_cat2);
-[p_presFreqMin,tbl_presFreqMin,stats_presFreqMin] = kruskalwallis(data.freq_badMin,data.prev_cat2);
-[p_presFreqMax,tbl_presFreqMax,stats_presFreqMax] = kruskalwallis(data.freq_badMax,data.prev_cat2);
+[p_presFreq,tbl_presFreq,stats_presFreq] = kruskalwallis(data.freq,data.prev_cat2);
+[p_presFreqMin,tbl_presFreqMin,stats_presFreqMin] = kruskalwallis(data.freqMin,data.prev_cat2);
+[p_presFreqMax,tbl_presFreqMax,stats_presFreqMax] = kruskalwallis(data.freqMax,data.prev_cat2);
+[p_presFreqBMin,tbl_presFreqBMin,stats_presFreqBMin] = kruskalwallis(data.freq_badMin,data.prev_cat2);
+[p_presFreqBMax,tbl_presFreqBMax,stats_presFreqBMax] = kruskalwallis(data.freq_badMax,data.prev_cat2);
 [tbl_presCont,chi2_presCont,p_presCont] = crosstab(data.ha_cont,data.prev_cat2);
 [tbl_presMOH,chi2_presMOH,p_presMOH] = crosstab(data.med_overuse,data.prev_cat2);
 [tbl_presMig,chi2_presMig,p_presMig] = crosstab(data.mig_pheno,data.prev_cat2);
@@ -176,19 +178,9 @@ data.freq_badMax(isnan(data.freq_badMax)) = max(data.freq_bad);
 [p_presDaysPost,tbl_presDaysPost,stats_presDaysPost] = kruskalwallis(data.days_post_visit1,data.prev_cat2);
 [tbl_presPriorHA,chi2_presPriorHA,p_presPriorHA,] = crosstab(data.prior_ha,data.prev_cat2);
 
-
-
-%% Outcome analysis
-
 % Follow up
 data.follow_ben = reordercats(data.follow_ben,{'wor','non_ben','som_ben','sig_ben'});
-data.fu_outcome = NaN*ones(height(data),1);
-data.fu_outcome(data.follow_ben=='wor') = -1;
-data.fu_outcome(data.follow_ben=='non_ben') = 0;
-data.fu_outcome(data.follow_ben=='som_ben') = 1;
-data.fu_outcome(data.follow_ben=='sig_ben') = 2;
 
-[p,tbl,stats] = kruskalwallis(data.fu_outcome,data.prev_cat2);
 
 %% compare complete and incomplete data
 
@@ -206,6 +198,7 @@ data.comp(~isundefined(data.follow_ben)) = 1;
 [tbl_compMig,chi2_compMig,p_compMig] = crosstab(data.mig_pheno,data.comp);
 [p_compDis,tbl_compDis,stats_compDis] = kruskalwallis(data.pedmidas_grade,data.comp);
 [p_compSev,tbl_compSev,stats_compSev] = kruskalwallis(data.severity_grade,data.comp);
-[p_compFreq,tbl_compFreq,stats_compFreq] = kruskalwallis(data.freq_bad,data.comp);
+[p_compFreqB,tbl_compFreqB,stats_compFreqB] = kruskalwallis(data.freq_bad,data.comp);
+[p_compFreq,tbl_compFreq,stats_compFreq] = kruskalwallis(data.freq,data.comp);
 
 close all
