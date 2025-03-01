@@ -1,8 +1,8 @@
 % Analyze PTH treatment data
 
 % load preventive dataset
-data_path_reg = getpref('TxPTH','pfizerDataPath');
-load([data_path_reg '/pthTxPrev_noID.mat'])
+data_path_tx = getpref('TxPTH','TxPthDataPath');
+load([data_path_tx '/pthTxPrev_noID022625.mat'])
 
 %% Inclusion criteria (run on PTH treatment dataset)
 
@@ -38,7 +38,8 @@ data.prior_ha(isnan(data.prior_ha)) = 0;
 
 % remove outcome data for participants whose follow up visit was >180 days
 % after their first visit
-data.fu(data.days_visit1to2<28 | data.days_visit1to2>180) = 0;
+data.fu(data.days_visit1to2<28 | data.days_visit1to2>180) = NaN;
+data.fu_outcome(data.days_visit1to2<28 | data.days_visit1to2>180) = NaN;
 data.follow_ben(data.days_visit1to2<28 | data.days_visit1to2>180) = '<undefined>';
 
 %% compile treatment specifics
@@ -153,6 +154,11 @@ data.freq_badMin(isnan(data.freq_badMin) & data.p_fre_bad~='oth') = min(data.fre
 data.freq_badMax = data.freq_bad;
 data.freq_badMax(isnan(data.freq_badMax) & data.p_fre_bad~='oth') = max(data.freq_bad);
 
+data.freqMin = data.freq_bad;
+data.freqMin(isnan(data.freqMin) & data.p_epi_fre~='oth') = min(data.freq);
+data.freqMax = data.freq;
+data.freqMax(isnan(data.freqMax) & data.p_epi_fre~='oth') = max(data.freq);
+
 % for who was prescribed a preventive
 
 [p_presAge,tbl_presAge,stats_presAge] = kruskalwallis(data.age,data.prev_cat2);
@@ -182,7 +188,7 @@ data.freq_badMax(isnan(data.freq_badMax) & data.p_fre_bad~='oth') = max(data.fre
 data.follow_ben = reordercats(data.follow_ben,{'wor','non_ben','som_ben','sig_ben'});
 
 
-%% compare complete and incomplete data
+%% compare participants who followed up versus those who did not
 
 data.comp = zeros(height(data),1);
 data.comp(~isundefined(data.follow_ben)) = 1;

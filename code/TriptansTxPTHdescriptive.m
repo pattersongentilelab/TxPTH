@@ -1,8 +1,8 @@
 % Analyze PTH acute treatment data
 
 % load triptans dataset
-data_path_reg = getpref('TxPTH','pfizerDataPath');
-load([data_path_reg '/pthTxTrp_noID.mat'])
+data_path_tx = getpref('TxPTH','TxPthDataPath');
+load([data_path_tx '/pthTxTrp_noID.mat'])
 
 
 %% Inclusion criteria (run on PTH treatment dataset)

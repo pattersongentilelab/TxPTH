@@ -84,7 +84,7 @@ pfizer = data;
 % load Tx PTH dataset
 data_path_tx = getpref('TxPTH','TxPthDataPath');
 load([data_path_tx '/TxPTH091823.mat'])
-pth_tx = data;
+pth_tx = data; % pth_tx = data(data.firstvisit<'2022-04-01',:);
 
 clear data
 
@@ -194,7 +194,7 @@ data = removevars(data,{'record_id','pfizer_id','firstvisit','date_onset','follo
     'prov_nm','clin_loc','locator_nm','street_long_deg_x','street_lat_deg_y','p_epi_conc_date',...
     'p_con_start_date','p_prim_care_occ','c_epi_conc_date','c_con_conc_date'});
 
-save([data_path_reg '/pthTxPrev_noID.mat'],'data')
+save([data_path_tx '/pthTxPrev_noID.mat'],'data')
 
 %% Make sure we have all pfizer registry eligible respondents
 % -	Age: 8-17 at time of first visit
@@ -275,5 +275,5 @@ data = removevars(data,{'record_id','pfizer_id','firstvisit','date_onset','visit
     'prov_nm','clin_loc','locator_nm','street_long_deg_x','street_lat_deg_y','p_epi_conc_date',...
     'p_con_start_date','p_prim_care_occ','c_epi_conc_date','c_con_conc_date','trp1_date','trp2_date','trp3_date'});
 
-save([data_path_reg '/pthTxTrp_noID.mat'],'data')
+save([data_path_tx '/pthTxTrp_noID.mat'],'data')
 clear data
