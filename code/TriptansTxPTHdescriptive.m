@@ -133,6 +133,8 @@ data.acuteChronic = categorical(data.acuteChronic,[0 1],{'acute','chronic'});
 [tbl_presMig,chi2_presMig,p_presMig] = crosstab(data.mig_pheno,data.trip_cat);
 [tbl_presHAprog,chi2_presHAprog,p_presHAprog] = crosstab(data.ha_program,data.trip_cat);
 [p_presDaysPost,tbl_presDaysPost,stats_presDaysPost] = kruskalwallis(data.days_post,data.trip_cat);
+[p_presFreq,tbl_presFreq,stats_presFreq] = kruskalwallis(data.freq,data.trip_cat);
+[p_presFreqB,tbl_presFreqB,stats_presFreqB] = kruskalwallis(data.freq_bad,data.trip_cat);
 [tbl_presAC,chi2_presAC,p_presAC] = crosstab(data.acuteChronic,data.trip_cat);
 [p_presPriorMed,tbl_presPriorMed,stats_presPriorMed] = kruskalwallis(data.num_prior_meds,data.trip_cat);
 
